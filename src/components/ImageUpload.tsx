@@ -10,7 +10,12 @@ function compressImage(src: string): Promise<string> {
     const img = new Image();
     img.onload = () => {
       let { naturalWidth: w, naturalHeight: h } = img;
-      if (w > 1024) { h = Math.round(h * (1024 / w)); w = 1024; }
+      const MAX = 1024;
+      if (w > MAX || h > MAX) {
+        const ratio = w / h;
+        if (w > h) { w = MAX; h = Math.round(MAX / ratio); }
+        else { h = MAX; w = Math.round(MAX * ratio); }
+      }
       const c = document.createElement("canvas"); c.width = w; c.height = h;
       const ctx = c.getContext("2d");
       if (!ctx) { reject(new Error("Canvas")); return; }
