@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { toFile } from "openai";
 import sharp from "sharp";
 
 export const maxDuration = 120;
@@ -15,7 +16,7 @@ function b64ToBuffer(dataUrl: string): Buffer {
   return Buffer.from(b64, "base64");
 }
 
-async function detectAspectRatio(dataUrl: string): Promise<"1536x1024" | "1024x1536" | "1024x1024"> {
+async function detectSize(dataUrl: string): Promise<"1024x1024" | "1536x1024" | "1024x1536"> {
   const buffer = b64ToBuffer(dataUrl);
   const metadata = await sharp(buffer).metadata();
   const w = metadata.width || 1024;
@@ -43,38 +44,37 @@ export async function POST(request: NextRequest) {
 
   try {
     const openai = getClient();
-    const size = await detectAspectRatio(roomImage);
+    const size = await detectSize(roomImage);
 
-    const content: any[] = [
-      { type: "input_image", image_url: roomImage },
-    ];
+    const roomBuffer = b64ToBuffer(roomImage);
+    const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
+
+    const images: any[] = [roomFile];
+    let prompt: string;
 
     if (textureImage) {
-      content.push({ type: "input_image", image_url: textureImage });
+      const texBuffer = b64ToBuffer(textureImage);
+      const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
+      images.push(texFile);
+      prompt = "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.";
+    } else {
+      prompt = "Ersetze nur den Boden in diesem Raum mit neuem Bodenbelag. Alles andere bleibt gleich.";
     }
 
-    content.push({
-      type: "input_text",
-      text: "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben."
+    const result = await openai.images.edit({
+      model: "gpt-image-1.5",
+      image: images,
+      prompt,
+      size,
+      quality: "low",
     });
 
-    const response = await openai.responses.create({
-      model: "gpt-4o",
-      input: [{ role: "user", content }],
-      tools: [{ type: "image_generation", size, quality: "low" }],
-    });
-
-    const imageOutput = response.output.find(
-      (item: any) => item.type === "image_generation_call"
-    );
-
-    if (!imageOutput || !("result" in imageOutput)) {
+    const b64 = result.data?.[0]?.b64_json;
+    if (!b64) {
       return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
     }
 
-    return NextResponse.json({
-      resultImage: "data:image/png;base64," + (imageOutput as any).result
-    });
+    return NextResponse.json({ resultImage: `data:image/png;base64,${b64}` });
   } catch (err: any) {
     console.error("[generate-preview]", err?.message);
     const msg =
