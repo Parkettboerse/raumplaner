@@ -6,10 +6,10 @@ export async function GET() {
   try {
     const products = await getProducts();
     return NextResponse.json(products);
-  } catch (err) {
-    console.error("[api/products GET]", err);
+  } catch (err: any) {
+    console.error("[api/products GET] FULL ERROR:", err?.message, err?.stack);
     return NextResponse.json(
-      { error: "Produkte konnten nicht geladen werden" },
+      { error: "Produkte konnten nicht geladen werden: " + (err?.message || "") },
       { status: 500 }
     );
   }
@@ -18,6 +18,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("[api/products POST] Body:", JSON.stringify(body).slice(0, 200));
 
     const required: (keyof FloorProduct)[] = [
       "id", "name", "category", "detail", "price", "shop_url",
@@ -50,11 +51,12 @@ export async function POST(request: NextRequest) {
     };
 
     await addProduct(product);
+    console.log("[api/products POST] Product saved:", product.id);
     return NextResponse.json(product, { status: 201 });
-  } catch (err) {
-    console.error("[api/products POST]", err);
+  } catch (err: any) {
+    console.error("[api/products POST] FULL ERROR:", err?.message, err?.stack);
     return NextResponse.json(
-      { error: "Produkt konnte nicht gespeichert werden" },
+      { error: "Produkt konnte nicht gespeichert werden: " + (err?.message || "") },
       { status: 500 }
     );
   }
