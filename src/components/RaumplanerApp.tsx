@@ -56,119 +56,118 @@ export default function RaumplanerApp() {
   return (
     <div className="min-h-screen bg-white">
 
-      {/* Step 1: Full-width upload */}
-      {currentStep === 1 && (
-        <ImageUpload onImageUploaded={handleImageUploaded} />
-      )}
+      {/* ═══ STEP 1: Landing ═══ */}
+      {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
 
-      {/* Steps 2-4 */}
-      {currentStep >= 2 && (
-        <div>
-          <div className="flex justify-center border-b py-3" style={{ borderColor: "var(--grey-border)" }}>
-            <StepIndicator currentStep={Math.min(currentStep, 3)} />
-          </div>
+      {/* ═══ STEP 2: Boden wählen ═══ */}
+      {currentStep === 2 && uploadedImage && (
+        <div className="animate-fadeUp" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
+          <div className="mb-6 flex justify-center"><StepIndicator currentStep={2} /></div>
 
-          <div className="mx-auto max-w-7xl">
-            <div className="flex flex-col lg:flex-row">
-              {/* Left */}
-              <div className="flex-[65] border-b lg:border-b-0 lg:border-r" style={{ borderColor: "var(--grey-border)" }}>
-                <div className="p-4 sm:p-6 lg:p-8">
-
-                  {currentStep === 2 && uploadedImage && (
-                    <div className="animate-fadeIn">
-                      <div className="relative w-full overflow-hidden rounded-xl">
-                        <img src={uploadedImage} alt="Raumfoto" className="w-full object-contain" />
-                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/50 to-transparent px-4 pb-3 pt-10">
-                          <span className="hidden text-sm text-white/80 sm:block">Wählen Sie einen Bodenbelag</span>
-                          <button onClick={handleReset} className="rounded-lg bg-white/20 px-3 py-1.5 text-xs text-white backdrop-blur-sm hover:bg-white/30">Anderes Foto</button>
-                        </div>
-                      </div>
-                      <button onClick={() => sidebarRef.current?.scrollIntoView({ behavior: "smooth" })} className="mt-3 w-full rounded-xl py-3 text-center text-sm font-semibold text-white lg:hidden" style={{ backgroundColor: "var(--black)" }}>Böden anzeigen</button>
-                    </div>
-                  )}
-
-                  {currentStep === 3 && uploadedImage && (
-                    <div className="animate-fadeIn">
-                      {error ? (
-                        <div className="rounded-xl border p-6 text-center" style={{ borderColor: "var(--grey-border)" }}>
-                          <p className="text-sm" style={{ color: "var(--black)" }}>{error}</p>
-                          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                            <button onClick={handleApplyFloor} className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Nochmal</button>
-                            <button onClick={handleTryAnother} className="rounded-xl border px-6 py-2.5 text-sm" style={{ borderColor: "var(--grey-border)" }}>Anderer Boden</button>
-                          </div>
-                        </div>
-                      ) : generating ? (
-                        <div className="relative w-full overflow-hidden rounded-xl">
-                          <img src={uploadedImage} alt="Generierung" className="w-full object-contain" style={{ filter: "blur(4px)", opacity: 0.3 }} />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-full max-w-xs rounded-2xl bg-white px-8 py-8 text-center" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.1)" }}>
-                              <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-[3px] border-t-transparent" style={{ borderColor: "var(--grey-border)", borderTopColor: "var(--gold)" }} />
-                              <p className="text-lg font-bold" style={{ color: "var(--black)" }}>Vorschau wird erstellt</p>
-                              <p className="mt-1 text-sm" style={{ color: "var(--grey)" }}>{selectedFloor?.name}</p>
-                              {/* Progress bar */}
-                              <div className="mx-auto mt-5 h-1.5 w-full overflow-hidden rounded-full" style={{backgroundColor:"var(--grey-border)"}}>
-                                <div className="h-full rounded-full" style={{backgroundColor:"var(--gold)",animation:"loadProgress 25s ease-out forwards"}} />
-                              </div>
-                              <p className="mt-3 text-xs" style={{ color: "var(--grey)" }}>10 – 30 Sekunden</p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : resultImage ? (
-                        <>
-                          <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
-                          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:gap-3">
-                            <button onClick={() => setCurrentStep(4)} className="relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-semibold" style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}>
-                              <span className="relative z-10">Im Shop ansehen</span>
-                              <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />
-                            </button>
-                            <button onClick={handleTryAnother} className="flex-1 rounded-xl border py-3 text-sm font-medium transition-colors hover:bg-gray-50" style={{ borderColor: "var(--grey-border)", color: "var(--dark)" }}>Anderer Boden</button>
-                            <button onClick={handleDownload} className="flex-1 rounded-xl py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Bild speichern</button>
-                          </div>
-                        </>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {currentStep === 4 && selectedFloor && (
-                    <div className="animate-fadeIn"><ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} /></div>
-                  )}
+          <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 380px" }}>
+            {/* Image */}
+            <div className="relative overflow-hidden" style={{ borderRadius: "var(--radius)", boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
+              <img src={uploadedImage} alt="Raumfoto" className="w-full object-contain" />
+              <div className="absolute inset-x-0 bottom-0" style={{ background: "linear-gradient(to top, rgba(10,10,10,0.65), transparent)", padding: "28px 24px 20px" }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-medium text-white/90">Wählen Sie einen Bodenbelag</span>
+                  <button onClick={handleReset} className="rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm transition hover:bg-white/25">Anderes Foto</button>
                 </div>
               </div>
+            </div>
 
-              {/* Right: Sidebar */}
-              <div ref={sidebarRef} className="flex-[35] lg:max-h-[700px]">
-                {currentStep === 2 && (
-                  <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
-                )}
-                {currentStep === 3 && generating && (
-                  <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-t-transparent" style={{ borderColor: "var(--grey-border)", borderTopColor: "var(--gold)" }} />
-                    <p className="mt-3 text-sm" style={{ color: "var(--grey)" }}>{selectedFloor?.name}</p>
-                  </div>
-                )}
-                {currentStep === 3 && !generating && resultImage && (
-                  <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor}
-                    onFloorSelect={(f) => { setSelectedFloor(f); generatePreview(f); }} onApply={() => {}} />
-                )}
-                {currentStep === 4 && resultImage && (
-                  <div className="p-4 sm:p-5">
-                    <div className="overflow-hidden rounded-xl"><img src={resultImage} alt="Vorschau" className="w-full object-cover" /></div>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <button onClick={() => setCurrentStep(3)} className="rounded-xl border py-2.5 text-sm" style={{ borderColor: "var(--grey-border)", color: "var(--black)" }}>Zurück</button>
-                      <button onClick={handleTryAnother} className="rounded-xl py-2.5 text-sm font-medium" style={{ color: "var(--gold)" }}>Anderer Boden</button>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Sidebar */}
+            <div ref={sidebarRef}>
+              <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
             </div>
           </div>
+
+          {/* Mobile: scroll to sidebar */}
+          <button onClick={() => sidebarRef.current?.scrollIntoView({ behavior: "smooth" })} className="mt-4 w-full rounded-[14px] py-3.5 text-center text-[14px] font-semibold text-white lg:hidden" style={{ backgroundColor: "var(--black)" }}>Böden anzeigen</button>
+
+          {/* Mobile: single column override */}
+          <style>{`@media(max-width:768px){.grid{grid-template-columns:1fr !important;}}`}</style>
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.25s ease-out; }
-      `}</style>
+      {/* ═══ STEP 3: Loading / Result ═══ */}
+      {currentStep === 3 && uploadedImage && (
+        <>
+          {error ? (
+            <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
+              <div className="mb-6 flex justify-center"><StepIndicator currentStep={3} /></div>
+              <div className="rounded-2xl border p-8 text-center" style={{ borderColor: "var(--grey-border)" }}>
+                <p className="text-[15px]" style={{ color: "var(--dark)" }}>{error}</p>
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <button onClick={handleApplyFloor} className="rounded-[14px] px-6 py-3.5 text-[14px] font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Nochmal versuchen</button>
+                  <button onClick={handleTryAnother} className="rounded-[14px] border px-6 py-3.5 text-[14px] font-medium" style={{ borderColor: "var(--grey-border)", color: "var(--dark)" }}>Anderen Boden</button>
+                </div>
+              </div>
+            </div>
+          ) : generating ? (
+            /* Loading */
+            <div className="flex items-center justify-center" style={{ minHeight: "520px", background: "var(--bg)" }}>
+              <div className="animate-fadeUp rounded-3xl bg-white text-center" style={{ padding: "48px 52px", boxShadow: "0 24px 64px rgba(0,0,0,0.07)" }}>
+                <div className="mx-auto mb-5 rounded-full" style={{ width: "52px", height: "52px", border: "3px solid #eee", borderTopColor: "var(--gold)", animation: "spin 0.7s linear infinite" }} />
+                <p className="text-[18px] font-bold" style={{ color: "var(--dark)" }}>Vorschau wird erstellt</p>
+                <p className="mt-2 text-[14px]" style={{ color: "var(--grey)" }}>{selectedFloor?.name}</p>
+                <div className="mx-auto mt-6 overflow-hidden rounded-full" style={{ height: "3px", maxWidth: "200px", background: "#eee" }}>
+                  <div className="h-full rounded-full" style={{ background: "var(--gold)", animation: "loadProgress 15s ease-out forwards" }} />
+                </div>
+                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Dies kann 10-20 Sekunden dauern</p>
+              </div>
+            </div>
+          ) : resultImage ? (
+            /* Result */
+            <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
+              <div className="mb-6 flex justify-center"><StepIndicator currentStep={3} /></div>
+
+              <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
+
+              {/* Product info card */}
+              {selectedFloor && (
+                <div className="mt-5 flex flex-col items-center gap-4 sm:flex-row" style={{ background: "var(--white)", border: "1px solid var(--grey-border)", borderRadius: "var(--radius)", padding: "20px" }}>
+                  {selectedFloor.texture_url && (
+                    <img src={selectedFloor.texture_url} alt="" className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover" />
+                  )}
+                  <div className="min-w-0 flex-1 text-center sm:text-left">
+                    <p className="text-[17px] font-bold" style={{ color: "var(--dark)" }}>{selectedFloor.name}</p>
+                    <p className="mt-0.5 text-[13px]" style={{ color: "var(--grey)" }}>{selectedFloor.detail}</p>
+                  </div>
+                  <p className="text-[22px] font-extrabold" style={{ color: "var(--gold)" }}>{selectedFloor.price}</p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="mt-4 grid grid-cols-1 gap-[10px] sm:grid-cols-3">
+                <button
+                  onClick={() => setCurrentStep(4)}
+                  className="relative overflow-hidden rounded-[14px] py-3.5 text-[14px] font-semibold transition-all duration-250 hover:-translate-y-0.5"
+                  style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
+                  onMouseEnter={(e)=>{e.currentTarget.style.boxShadow="0 8px 24px var(--gold-glow)";}}
+                  onMouseLeave={(e)=>{e.currentTarget.style.boxShadow="none";}}
+                >
+                  <span className="relative z-10">Im Shop ansehen</span>
+                  <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />
+                </button>
+                <button onClick={handleTryAnother} className="rounded-[14px] py-3.5 text-[14px] font-semibold transition-all duration-250 hover:-translate-y-0.5" style={{ background: "var(--white)", border: "1.5px solid var(--grey-border)", color: "var(--dark)" }}>
+                  Anderen Boden testen
+                </button>
+                <button onClick={handleDownload} className="rounded-[14px] py-3.5 text-[14px] font-semibold text-white transition-all duration-250 hover:-translate-y-0.5" style={{ backgroundColor: "var(--black)" }}>
+                  Bild speichern
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {/* ═══ STEP 4: Product Detail ═══ */}
+      {currentStep === 4 && selectedFloor && (
+        <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
+          <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />
+        </div>
+      )}
     </div>
   );
 }

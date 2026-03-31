@@ -7,40 +7,42 @@ interface Props { product: FloorProduct; onBack: () => void; }
 export default function ProductDetail({ product, onBack }: Props) {
   return (
     <div>
-      <button onClick={onBack} className="mb-4 inline-flex items-center gap-1 text-sm hover:opacity-70" style={{ color: "var(--grey)" }}>
+      <button onClick={onBack} className="mb-5 inline-flex items-center gap-1.5 text-[14px] font-medium transition-opacity hover:opacity-70" style={{ color: "var(--grey)" }}>
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         Zurück zur Vorschau
       </button>
 
-      <div className="rounded-lg border p-5" style={{ borderColor: "var(--grey-border)" }}>
-        <div className="flex gap-4">
-          <div className="h-[90px] w-[90px] shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: "var(--grey-bg)" }}>
+      <div style={{ border: "1px solid var(--grey-border)", borderRadius: "var(--radius)", padding: "24px" }}>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="h-[80px] w-[80px] shrink-0 overflow-hidden rounded-xl" style={{ backgroundColor: "var(--grey-bg)" }}>
             {product.texture_url && <img src={product.texture_url} alt={product.name} className="h-full w-full object-cover" />}
           </div>
-          <div className="flex min-w-0 flex-1 flex-col justify-center">
-            <h3 className="text-base font-bold" style={{ color: "var(--black)" }}>{product.name}</h3>
-            <p className="mt-0.5 text-xs" style={{ color: "var(--grey)" }}>{product.detail}</p>
-            <p className="mt-1.5 text-xl font-bold" style={{ color: "var(--gold)" }}>{product.price}</p>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[17px] font-bold" style={{ color: "var(--dark)" }}>{product.name}</h3>
+            <p className="mt-0.5 text-[13px]" style={{ color: "var(--grey)" }}>{product.detail}</p>
           </div>
+          <p className="text-[22px] font-extrabold" style={{ color: "var(--gold)" }}>{product.price}</p>
         </div>
 
         <a href={product.shop_url} target="_blank" rel="noopener noreferrer"
-          className="mt-5 flex w-full items-center justify-center rounded-lg py-3 text-sm font-semibold text-white hover:opacity-90"
-          style={{ backgroundColor: "var(--black)" }}>
-          Jetzt auf parkettboerse.net bestellen
+          className="relative mt-6 flex w-full items-center justify-center overflow-hidden text-[15px] font-bold transition-all duration-250 hover:-translate-y-0.5"
+          style={{ backgroundColor: "var(--gold)", color: "var(--black)", padding: "15px", borderRadius: "14px" }}
+          onMouseEnter={(e)=>{e.currentTarget.style.boxShadow="0 8px 24px var(--gold-glow)";}}
+          onMouseLeave={(e)=>{e.currentTarget.style.boxShadow="none";}}>
+          <span className="relative z-10">Jetzt auf parkettboerse.net bestellen</span>
+          <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />
         </a>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2.5">
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: "#F0FAF0", color: "var(--black)" }}>
-          <span style={{ color: "var(--green)" }} className="font-medium">&#10003;</span> Dieses Produkt ist verfügbar und kann direkt bestellt werden.
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="rounded-xl text-[14px]" style={{ backgroundColor: "#F0FAF0", padding: "14px 18px", color: "var(--dark)" }}>
+          <span className="font-semibold" style={{ color: "var(--green)" }}>&#10003;</span> Verfügbar und direkt bestellbar.
         </div>
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: "var(--gold-pale)", color: "var(--black)" }}>
-          Fragen? <a href="tel:+498214552680" className="font-medium underline" style={{ color: "var(--black)" }}>0821 455 268 0</a> oder{" "}
-          <a href="mailto:augsburg@parkettboerse.net" className="font-medium underline" style={{ color: "var(--black)" }}>augsburg@parkettboerse.net</a>
+        <div className="rounded-xl text-[14px]" style={{ backgroundColor: "var(--gold-pale)", padding: "14px 18px", color: "var(--dark)" }}>
+          Fragen? <a href="tel:+498214552680" className="font-semibold underline">0821 455 268 0</a> oder <a href="mailto:augsburg@parkettboerse.net" className="font-semibold underline">augsburg@parkettboerse.net</a>
         </div>
-        <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--grey-border)", color: "var(--black)" }}>
-          Ausstellung: <span className="font-medium">Eichleitnerstraße 5, 86199 Augsburg</span> — 800m²
+        <div className="rounded-xl text-[14px]" style={{ border: "1px solid var(--grey-border)", padding: "14px 18px", color: "var(--dark)" }}>
+          Ausstellung: <span className="font-semibold">Eichleitnerstraße 5, 86199 Augsburg</span> — 800m²
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 "use client";
 
 const STEPS = [
-  { num: 1, label: "Foto" },
-  { num: 2, label: "Boden" },
-  { num: 3, label: "Vorschau" },
+  { num: 1, label: "FOTO" },
+  { num: 2, label: "BODEN" },
+  { num: 3, label: "ERGEBNIS" },
 ];
 
 export default function StepIndicator({ currentStep }: { currentStep: number }) {
@@ -15,25 +15,24 @@ export default function StepIndicator({ currentStep }: { currentStep: number }) 
         return (
           <div key={step.num} className="flex items-center">
             {i > 0 && (
-              <div className="relative h-[2px] w-8 overflow-hidden rounded-full sm:w-12" style={{ backgroundColor: "var(--grey-border)" }}>
-                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-500" style={{
-                  width: done ? "100%" : active ? "50%" : "0%",
-                  backgroundColor: done ? "var(--black)" : "var(--gold)",
-                }} />
-              </div>
+              <div className="h-[2px] w-10" style={{ backgroundColor: done ? "var(--black)" : "#eee" }} />
             )}
             <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300" style={{
-                background: done ? "var(--black)" : active ? "linear-gradient(135deg, #C8A415, #D4B84A)" : "var(--white)",
-                color: done ? "var(--gold)" : active ? "var(--white)" : "var(--grey)",
-                border: !done && !active ? "2px solid var(--grey-border)" : "none",
-                boxShadow: active ? "0 3px 12px var(--gold-glow)" : "none",
-              }}>
+              <div
+                className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[13px] font-bold transition-all duration-300"
+                style={{
+                  backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "#eee",
+                  color: done ? "var(--gold)" : active ? "var(--black)" : "#bbb",
+                  boxShadow: active ? "0 4px 14px var(--gold-glow)" : "none",
+                }}
+              >
                 {done ? (
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{color:"var(--gold)"}}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{color:"var(--gold)"}}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                 ) : step.num}
               </div>
-              <span className="hidden text-[11px] font-medium sm:block" style={{ color: done ? "var(--dark)" : active ? "var(--gold)" : "var(--grey)" }}>{step.label}</span>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[1px] sm:block" style={{ color: done ? "var(--dark)" : active ? "var(--gold)" : "#bbb" }}>
+                {step.label}
+              </span>
             </div>
           </div>
         );

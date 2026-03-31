@@ -120,8 +120,8 @@ export default function BeforeAfterSlider({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={50}
-      className="relative h-[250px] select-none overflow-hidden rounded-2xl shadow-lg sm:h-[380px]"
-      style={{ cursor: "col-resize" }}
+      className="relative h-[260px] select-none overflow-hidden sm:h-[400px]"
+      style={{ cursor: "col-resize", borderRadius: "var(--radius)", boxShadow: "0 16px 48px rgba(0,0,0,0.12)" }}
     >
       {/* After image (bottom layer — full, visible on the right) */}
       <img
@@ -148,21 +148,22 @@ export default function BeforeAfterSlider({
       {/* Slider line */}
       <div
         ref={lineRef}
-        className="absolute top-0 z-10 h-full w-[3px] -translate-x-1/2"
+        className="absolute top-0 z-10 h-full w-[2px] -translate-x-1/2"
         style={{
           left: "50%",
           backgroundColor: "var(--white)",
-          boxShadow: "0 0 8px rgba(0, 0, 0, 0.3)",
+          boxShadow: "0 0 12px rgba(0,0,0,0.3)",
         }}
       />
 
       {/* Slider knob */}
       <div
         ref={knobRef}
-        className="absolute top-1/2 z-[11] flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg"
+        className="absolute top-1/2 z-[11] flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white"
         style={{
           left: "50%",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.25)",
+          width: "44px", height: "44px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
         }}
       >
         <span
@@ -176,15 +177,15 @@ export default function BeforeAfterSlider({
       {/* Labels */}
       <span
         ref={labelBeforeRef}
-        className="absolute left-3 top-3 z-[15] rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm transition-opacity duration-150"
-        style={{ backgroundColor: "rgba(13, 13, 13, 0.6)" }}
+        className="absolute left-3 top-3 z-[15] rounded-full text-[12px] font-semibold uppercase text-white backdrop-blur-[8px] transition-opacity duration-150"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)", padding: "6px 16px" }}
       >
         Vorher
       </span>
       <span
         ref={labelAfterRef}
-        className="absolute right-3 top-3 z-[15] rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm transition-opacity duration-150"
-        style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
+        className="absolute right-3 top-3 z-[15] rounded-full text-[12px] font-semibold uppercase backdrop-blur-[8px] transition-opacity duration-150"
+        style={{ backgroundColor: "var(--gold)", color: "var(--black)", padding: "6px 16px" }}
       >
         Nachher
       </span>
