@@ -41,8 +41,6 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       return;
     }
 
-    setProcessing(true);
-
     const isHeic =
       file.type === "image/heic" ||
       file.type === "image/heif" ||
@@ -52,44 +50,75 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!isHeic && !allowedTypes.includes(file.type)) {
       setError("Nicht unterstütztes Format. Bitte JPG, PNG oder HEIC verwenden.");
-      setProcessing(false);
       return;
     }
 
-    // HEIC: convert server-side via sharp
-    if (isHeic) {
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/convert-heic", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || "HEIC-Konvertierung fehlgeschlagen.");
-          setProcessing(false);
-          return;
-        }
-        setPreview(data.image);
-        setProcessing(false);
-        return;
-      } catch (err) {
-        console.error("HEIC conversion error:", err);
-        setError("HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG.");
-        setProcessing(false);
-        return;
-      }
-    }
+    setProcessing(true);
 
-    // JPG/PNG/WebP: read directly
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result as string);
+    // Universal approach: load any image the browser can decode
+    // (Safari/Chrome support HEIC natively), draw to canvas, export as JPEG.
+    // This avoids server roundtrips and unreliable HEIC libraries.
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          // Draw to canvas and export as JPEG
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas nicht verfügbar"));
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          const jpeg = canvas.toDataURL("image/jpeg", 0.9);
+          resolve(jpeg);
+        };
+        img.onerror = () => {
+          // Browser can't decode this format — try server-side as fallback
+          if (isHeic) {
+            reject(new Error("HEIC_FALLBACK"));
+          } else {
+            reject(new Error("Bild konnte nicht geladen werden"));
+          }
+        };
+        img.src = objectUrl;
+      });
+
+      setPreview(base64);
       setProcessing(false);
-    };
-    reader.onerror = () => {
-      setError("Fehler beim Lesen der Datei.");
+    } catch (err: any) {
+      // HEIC fallback: send to server-side sharp conversion
+      if (err?.message === "HEIC_FALLBACK") {
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/convert-heic", {
+            method: "POST",
+            body: fd,
+          });
+          const data = await res.json();
+          if (res.ok && data.image) {
+            setPreview(data.image);
+            setProcessing(false);
+            return;
+          }
+        } catch (serverErr) {
+          console.error("Server HEIC conversion failed:", serverErr);
+        }
+        setError(
+          "HEIC wird von Ihrem Browser nicht unterstützt. Bitte verwenden Sie JPG oder PNG, oder öffnen Sie die App in Safari."
+        );
+      } else {
+        setError("Fehler beim Laden des Bildes. Bitte versuchen Sie ein anderes Foto.");
+      }
       setProcessing(false);
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   }
 
   function handleDragOver(e: DragEvent) {
