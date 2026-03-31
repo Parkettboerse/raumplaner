@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openai } from "@/lib/openai";
+import { getOpenAIClient } from "@/lib/openai";
 import { toFile } from "openai";
 import { getProductById } from "@/lib/products";
 
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       type: "image/png",
     });
 
+    const openai = getOpenAIClient();
     const response = await openai.images.edit({
       model: "gpt-image-1",
       image: imageFile,
