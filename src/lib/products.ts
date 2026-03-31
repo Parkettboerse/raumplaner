@@ -1,82 +1,65 @@
 import { FloorProduct } from "@/types";
-import { put, list, del } from "@vercel/blob";
-import fs from "fs";
-import path from "path";
+import { put, list } from "@vercel/blob";
 
 const BLOB_PATH = "data/products.json";
-const LOCAL_PATH = path.join(process.cwd(), "src/data/products.json");
 
-/**
- * Check if Blob Storage is configured.
- */
 function hasBlobToken(): boolean {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   return !!token && token !== "vercel_blob_token_hier" && token.trim() !== "";
 }
 
-/**
- * Read products — from Blob Storage if available, otherwise local file.
- */
+// In-memory fallback for dev without Blob token
+let memoryStore: FloorProduct[] | null = null;
+
+function getLocalSeed(): FloorProduct[] {
+  // Dynamic require to avoid issues on Vercel where the file may not exist
+  try {
+    return require("@/data/products.json") as FloorProduct[];
+  } catch {
+    return [];
+  }
+}
+
 export async function getProducts(): Promise<FloorProduct[]> {
   if (hasBlobToken()) {
     try {
       const { blobs } = await list({ prefix: BLOB_PATH });
       const blob = blobs.find((b) => b.pathname === BLOB_PATH);
       if (blob) {
-        const res = await fetch(blob.url);
-        if (res.ok) {
-          return await res.json();
-        }
+        const res = await fetch(blob.url, { cache: "no-store" });
+        if (res.ok) return await res.json();
       }
-      // No blob yet — return local seed data and upload it
-      const seed = readLocal();
-      await saveProducts(seed);
+      // No blob yet — seed from bundled data
+      const seed = getLocalSeed();
+      if (seed.length > 0) {
+        await saveProducts(seed);
+      }
       return seed;
     } catch (err) {
-      console.error("[products] Blob read failed, falling back to local:", err);
-      return readLocal();
+      console.error("[products] Blob read error:", err);
+      return getLocalSeed();
     }
   }
-  return readLocal();
+
+  // Dev mode: in-memory store seeded from local file
+  if (memoryStore === null) {
+    memoryStore = getLocalSeed();
+  }
+  return memoryStore;
 }
 
-/**
- * Save products — to Blob Storage if available, otherwise local file.
- */
 export async function saveProducts(products: FloorProduct[]): Promise<void> {
-  const json = JSON.stringify(products, null, 2);
-
   if (hasBlobToken()) {
-    try {
-      await put(BLOB_PATH, json, {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/json",
-      });
-      return;
-    } catch (err) {
-      console.error("[products] Blob write failed, falling back to local:", err);
-    }
+    await put(BLOB_PATH, JSON.stringify(products, null, 2), {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: "application/json",
+    });
+    return;
   }
 
-  // Local fallback (dev mode)
-  ensureLocalDir();
-  fs.writeFileSync(LOCAL_PATH, json, "utf-8");
-}
-
-function readLocal(): FloorProduct[] {
-  ensureLocalDir();
-  if (!fs.existsSync(LOCAL_PATH)) {
-    fs.writeFileSync(LOCAL_PATH, "[]", "utf-8");
-  }
-  return JSON.parse(fs.readFileSync(LOCAL_PATH, "utf-8"));
-}
-
-function ensureLocalDir() {
-  const dir = path.dirname(LOCAL_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  // Dev mode: save to memory
+  memoryStore = products;
 }
 
 export async function getProductById(

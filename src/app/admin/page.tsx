@@ -121,9 +121,17 @@ export default function AdminPage() {
   // ────────────────────────────────────────
   async function fetchProducts() {
     setLoading(true);
-    const res = await fetch("/api/products");
-    const data = await res.json();
-    setProducts(data);
+    try {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setProducts(data);
+      } else {
+        flash(data.error || "Produkte konnten nicht geladen werden", "err");
+      }
+    } catch {
+      flash("Netzwerkfehler beim Laden der Produkte", "err");
+    }
     setLoading(false);
   }
 
@@ -194,17 +202,22 @@ export default function AdminPage() {
       };
       if (textureUrl) body.texture_url = textureUrl;
 
-      const res = await fetch(`/api/products/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        flash("Produkt aktualisiert");
-        resetForm();
-        fetchProducts();
-      } else {
-        flash("Fehler beim Aktualisieren", "err");
+      try {
+        const res = await fetch(`/api/products/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          flash("Produkt aktualisiert");
+          resetForm();
+          fetchProducts();
+        } else {
+          flash(data.error || "Fehler beim Aktualisieren", "err");
+        }
+      } catch {
+        flash("Netzwerkfehler beim Speichern", "err");
       }
     } else {
       const id = `${form.category}-${slugify(form.name)}`;
@@ -218,18 +231,22 @@ export default function AdminPage() {
         shop_url: form.shop_url,
       };
 
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product),
-      });
-      if (res.ok) {
-        flash("Produkt hinzugefügt");
-        resetForm();
-        fetchProducts();
-      } else {
-        const err = await res.json();
-        flash(err.error || "Fehler", "err");
+      try {
+        const res = await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(product),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          flash("Produkt hinzugefügt");
+          resetForm();
+          fetchProducts();
+        } else {
+          flash(data.error || "Fehler beim Hinzufügen", "err");
+        }
+      } catch {
+        flash("Netzwerkfehler beim Speichern", "err");
       }
     }
     setSubmitting(false);
@@ -237,10 +254,17 @@ export default function AdminPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Produkt wirklich löschen?")) return;
-    const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      flash("Produkt gelöscht");
-      fetchProducts();
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        flash("Produkt gelöscht");
+        fetchProducts();
+      } else {
+        flash(data.error || "Fehler beim Löschen", "err");
+      }
+    } catch {
+      flash("Netzwerkfehler beim Löschen", "err");
     }
   }
 
