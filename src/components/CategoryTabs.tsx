@@ -4,10 +4,7 @@ import { FloorProduct } from "@/types";
 
 type Category = FloorProduct["category"] | "alle";
 
-interface CategoryTabsProps {
-  activeCategory: Category;
-  onCategoryChange: (category: Category) => void;
-}
+interface Props { activeCategory: Category; onCategoryChange: (c: Category) => void; }
 
 const TABS: { value: Category; label: string }[] = [
   { value: "alle", label: "Alle" },
@@ -17,44 +14,20 @@ const TABS: { value: Category; label: string }[] = [
   { value: "kork", label: "Kork" },
 ];
 
-export default function CategoryTabs({
-  activeCategory,
-  onCategoryChange,
-}: CategoryTabsProps) {
+export default function CategoryTabs({ activeCategory, onCategoryChange }: Props) {
   return (
-    <div
-      role="tablist"
-      aria-label="Bodenbelag-Kategorien"
-      className="category-tabs-scroll flex gap-2 overflow-x-auto pb-1"
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-    >
-      <style>{`
-        .category-tabs-scroll::-webkit-scrollbar { display: none; }
-      `}</style>
+    <div className="category-scroll flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <style>{`.category-scroll::-webkit-scrollbar { display: none; }`}</style>
       {TABS.map((tab) => {
-        const isActive = activeCategory === tab.value;
+        const active = activeCategory === tab.value;
         return (
           <button
             key={tab.value}
             onClick={() => onCategoryChange(tab.value)}
-            role="tab"
-            aria-selected={isActive}
-            aria-label={`Kategorie ${tab.label}`}
-            className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200"
+            className="shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
             style={{
-              backgroundColor: isActive ? "var(--oak)" : "var(--oak-pale)",
-              color: isActive ? "var(--white)" : "var(--grey)",
-              border: isActive ? "1px solid var(--oak)" : "1px solid transparent",
-            }}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                (e.target as HTMLElement).style.borderColor = "var(--oak)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                (e.target as HTMLElement).style.borderColor = "transparent";
-              }
+              backgroundColor: active ? "var(--black)" : "var(--grey-bg)",
+              color: active ? "var(--white)" : "var(--grey)",
             }}
           >
             {tab.label}
