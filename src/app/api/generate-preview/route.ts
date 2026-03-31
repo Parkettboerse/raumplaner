@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { toFile } from "openai";
 import sharp from "sharp";
 
 export const maxDuration = 120;
@@ -53,35 +54,36 @@ export async function POST(request: NextRequest) {
     const openai = getClient();
     const size = await detectSize(roomImage);
 
+    const roomBuffer = b64ToBuffer(roomImage);
+    const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
+
+    const images: any[] = [roomFile];
     let prompt: string;
+
     if (textureImage) {
+      const texBuffer = b64ToBuffer(textureImage);
+      const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
+      images.push(texFile);
       prompt = "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.";
     } else {
       prompt = "Ersetze nur den Boden in diesem Raum mit neuem Bodenbelag. Alles andere bleibt gleich.";
     }
 
-    console.log("[generate-preview] Size:", size, "Room dimensions:", roomImage.substring(0, 30));
-
-    const content: any[] = [
-      { type: "input_image", image_url: roomImage },
-      ...(textureImage ? [{ type: "input_image", image_url: textureImage }] : []),
-      { type: "input_text", text: prompt },
-    ];
-
-    const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: [{ role: "user", content }],
-      tools: [{ type: "image_generation", size, quality: "low", input_fidelity: "high" } as any],
+    const result = await (openai.images.edit as any)({
+      model: "gpt-image-1.5",
+      image: images,
+      prompt,
+      size,
+      quality: "medium",
+      input_fidelity: "high",
     });
 
-    const imageOutput = response.output.find((item: any) => item.type === "image_generation_call");
-    if (!imageOutput || !("result" in imageOutput)) {
+    const b64 = result.data?.[0]?.b64_json;
+    if (!b64) {
       return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
     }
 
-    console.log("[generate-preview] Success, requested size:", size);
-
-    return NextResponse.json({ resultImage: "data:image/png;base64," + (imageOutput as any).result });
+    return NextResponse.json({ resultImage: `data:image/png;base64,${b64}` });
   } catch (err: any) {
     console.error("[generate-preview]", err?.message);
     const msg =
