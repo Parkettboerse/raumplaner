@@ -57,108 +57,87 @@ export default function RaumplanerApp() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div style={{ minHeight: "100vh", background: "var(--white)" }}>
 
       {/* ═══ STEP 1: Landing ═══ */}
       {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
 
       {/* ═══ STEP 2: Boden wählen ═══ */}
       {currentStep === 2 && uploadedImage && (
-        <div className="animate-fadeUp" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
-          <div className="mb-6 flex justify-center"><StepIndicator currentStep={2} /></div>
+        <div className="step2">
+          <StepIndicator currentStep={2} />
 
-          <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 380px" }}>
-            {/* Image */}
-            <div className="relative overflow-hidden" style={{ borderRadius: "var(--radius)", boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
-              <img src={uploadedImage} alt="Raumfoto" className="w-full object-contain" />
-              <div className="absolute inset-x-0 bottom-0" style={{ background: "linear-gradient(to top, rgba(10,10,10,0.65), transparent)", padding: "28px 24px 20px" }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-medium text-white/90">Wählen Sie einen Bodenbelag</span>
-                  <button onClick={handleReset} className="rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm transition hover:bg-white/25">Anderes Foto</button>
-                </div>
+          <div className="main-grid">
+            <div className="canvas-wrap">
+              <img src={uploadedImage} alt="Ihr Raum" />
+              <div className="canvas-info">
+                <h3>Wählen Sie einen Bodenbelag</h3>
+                <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", padding: "6px 16px", borderRadius: "100px", fontSize: "12px", fontWeight: 600, cursor: "pointer", backdropFilter: "blur(8px)" }}>
+                  Anderes Foto
+                </button>
               </div>
             </div>
 
-            {/* Sidebar */}
             <div ref={sidebarRef}>
               <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
             </div>
           </div>
 
           {/* Mobile: scroll to sidebar */}
-          <button onClick={() => sidebarRef.current?.scrollIntoView({ behavior: "smooth" })} className="mt-4 w-full rounded-[14px] py-3.5 text-center text-[14px] font-semibold text-white lg:hidden" style={{ backgroundColor: "var(--black)" }}>Böden anzeigen</button>
-
-          {/* Mobile: single column override */}
-          <style>{`@media(max-width:768px){.grid{grid-template-columns:1fr !important;}}`}</style>
+          <button onClick={() => sidebarRef.current?.scrollIntoView({ behavior: "smooth" })} className="go-btn" style={{ marginTop: "16px", display: "none" }}>
+            Böden anzeigen
+          </button>
+          <style>{`@media(max-width:768px){.step2 .go-btn[style]{display:block !important;}}`}</style>
         </div>
       )}
 
-      {/* ═══ STEP 3: Loading / Result ═══ */}
+      {/* ═══ STEP 3: Loading / Error / Result ═══ */}
       {currentStep === 3 && uploadedImage && (
         <>
           {error ? (
-            <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
-              <div className="mb-6 flex justify-center"><StepIndicator currentStep={3} /></div>
-              <div className="rounded-2xl border p-8 text-center" style={{ borderColor: "var(--grey-border)" }}>
-                <p className="text-[15px]" style={{ color: "var(--dark)" }}>{error}</p>
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                  <button onClick={handleApplyFloor} className="rounded-[14px] px-6 py-3.5 text-[14px] font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Nochmal versuchen</button>
-                  <button onClick={handleTryAnother} className="rounded-[14px] border px-6 py-3.5 text-[14px] font-medium" style={{ borderColor: "var(--grey-border)", color: "var(--dark)" }}>Anderen Boden</button>
+            <div className="result-wrap">
+              <StepIndicator currentStep={3} />
+              <div style={{ background: "white", borderRadius: "24px", padding: "48px", textAlign: "center", border: "1px solid var(--grey-border)" }}>
+                <p style={{ fontSize: "15px", color: "var(--dark)" }}>{error}</p>
+                <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button className="rb rb-black" onClick={handleApplyFloor}>Nochmal versuchen</button>
+                  <button className="rb rb-outline" onClick={handleTryAnother}>Anderen Boden</button>
                 </div>
               </div>
             </div>
           ) : generating ? (
-            /* Loading */
-            <div className="flex items-center justify-center" style={{ minHeight: "520px", background: "var(--bg)" }}>
-              <div className="animate-fadeUp rounded-3xl bg-white text-center" style={{ padding: "48px 52px", boxShadow: "0 24px 64px rgba(0,0,0,0.07)" }}>
-                <div className="mx-auto mb-5 rounded-full" style={{ width: "52px", height: "52px", border: "3px solid #eee", borderTopColor: "var(--gold)", animation: "spin 0.7s linear infinite" }} />
-                <p className="text-[18px] font-bold" style={{ color: "var(--dark)" }}>KI generiert Vorschau</p>
-                <p className="mt-2 text-[14px]" style={{ color: "var(--grey)" }}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
-                <div className="mx-auto mt-6 overflow-hidden rounded-full" style={{ height: "3px", maxWidth: "200px", background: "#eee" }}>
-                  <div className="h-full rounded-full" style={{ background: "var(--gold)", animation: "loadProgress 15s ease-out forwards" }} />
-                </div>
-                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Dies kann 10–20 Sekunden dauern</p>
+            <div className="load-wrap">
+              <div className="load-box">
+                <div className="load-spin" />
+                <h3>KI generiert Vorschau</h3>
+                <p>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
+                <div className="load-bar"><div className="load-bar-fill" /></div>
+                <div className="load-time">Dies kann 10–20 Sekunden dauern</div>
               </div>
             </div>
           ) : resultImage ? (
-            /* Result */
-            <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
-              <div className="mb-6 flex justify-center"><StepIndicator currentStep={3} /></div>
+            <div className="result-wrap">
+              <StepIndicator currentStep={3} />
 
               <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
 
-              {/* Product info card */}
               {selectedFloor && (
-                <div className="mt-5 flex flex-col items-center gap-4 sm:flex-row" style={{ background: "var(--white)", border: "1px solid var(--grey-border)", borderRadius: "var(--radius)", padding: "20px" }}>
+                <div className="prod-result">
                   {selectedFloor.texture_url && (
-                    <img src={selectedFloor.texture_url} alt="" className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover" />
+                    <div className="prod-result-tex"><img src={selectedFloor.texture_url} alt="" /></div>
                   )}
-                  <div className="min-w-0 flex-1 text-center sm:text-left">
-                    <p className="text-[17px] font-bold" style={{ color: "var(--dark)" }}>{selectedFloor.name}</p>
-                    <p className="mt-0.5 text-[13px]" style={{ color: "var(--grey)" }}>{selectedFloor.detail}</p>
+                  <div className="prod-result-info">
+                    <h3>{selectedFloor.name}</h3>
+                    <p>{selectedFloor.detail}</p>
                   </div>
-                  <p className="text-[22px] font-extrabold" style={{ color: "var(--gold)" }}>{selectedFloor.price}</p>
+                  <div className="prod-result-price">{selectedFloor.price}</div>
                 </div>
               )}
 
-              {/* Action buttons */}
-              <div className="mt-4 grid grid-cols-1 gap-[10px] sm:grid-cols-3">
-                <button
-                  onClick={() => setCurrentStep(4)}
-                  className="relative overflow-hidden rounded-[14px] py-3.5 text-[14px] font-semibold transition-all duration-250 hover:-translate-y-0.5"
-                  style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
-                  onMouseEnter={(e)=>{e.currentTarget.style.boxShadow="0 8px 24px var(--gold-glow)";}}
-                  onMouseLeave={(e)=>{e.currentTarget.style.boxShadow="none";}}
-                >
-                  <span className="relative z-10">Im Shop ansehen</span>
-                  <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />
-                </button>
-                <button onClick={handleTryAnother} className="rounded-[14px] py-3.5 text-[14px] font-semibold transition-all duration-250 hover:-translate-y-0.5" style={{ background: "var(--white)", border: "1.5px solid var(--grey-border)", color: "var(--dark)" }}>
-                  Anderen Boden testen
-                </button>
-                <button onClick={handleDownload} className="rounded-[14px] py-3.5 text-[14px] font-semibold text-white transition-all duration-250 hover:-translate-y-0.5" style={{ backgroundColor: "var(--black)" }}>
-                  Bild speichern
-                </button>
+              <div className="res-btns">
+                <button className="rb rb-gold" onClick={() => setCurrentStep(4)}>Im Shop ansehen</button>
+                <button className="rb rb-outline" onClick={handleTryAnother}>Anderen Boden testen</button>
+                <button className="rb rb-black" onClick={handleDownload}>Bild speichern</button>
               </div>
             </div>
           ) : null}
@@ -167,7 +146,7 @@ export default function RaumplanerApp() {
 
       {/* ═══ STEP 4: Product Detail ═══ */}
       {currentStep === 4 && selectedFloor && (
-        <div className="animate-fadeUp" style={{ maxWidth: "880px", margin: "0 auto", padding: "24px" }}>
+        <div className="result-wrap">
           <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />
         </div>
       )}
