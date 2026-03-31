@@ -102,13 +102,17 @@ export default function RaumplanerApp() {
                         </div>
                       ) : generating ? (
                         <div className="relative w-full overflow-hidden rounded-xl">
-                          <img src={uploadedImage} alt="Generierung" className="w-full object-contain" style={{ filter: "blur(4px)", opacity: 0.35 }} />
+                          <img src={uploadedImage} alt="Generierung" className="w-full object-contain" style={{ filter: "blur(4px)", opacity: 0.3 }} />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="rounded-2xl bg-white px-8 py-8 text-center sm:px-12" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+                            <div className="w-full max-w-xs rounded-2xl bg-white px-8 py-8 text-center" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.1)" }}>
                               <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-[3px] border-t-transparent" style={{ borderColor: "var(--grey-border)", borderTopColor: "var(--gold)" }} />
-                              <p className="text-lg font-semibold" style={{ color: "var(--black)" }}>Vorschau wird erstellt</p>
+                              <p className="text-lg font-bold" style={{ color: "var(--black)" }}>Vorschau wird erstellt</p>
                               <p className="mt-1 text-sm" style={{ color: "var(--grey)" }}>{selectedFloor?.name}</p>
-                              <p className="mt-4 text-xs" style={{ color: "var(--grey-light)" }}>10 – 30 Sekunden</p>
+                              {/* Progress bar */}
+                              <div className="mx-auto mt-5 h-1.5 w-full overflow-hidden rounded-full" style={{backgroundColor:"var(--grey-border)"}}>
+                                <div className="h-full rounded-full" style={{backgroundColor:"var(--gold)",animation:"loadProgress 25s ease-out forwards"}} />
+                              </div>
+                              <p className="mt-3 text-xs" style={{ color: "var(--grey)" }}>10 – 30 Sekunden</p>
                             </div>
                           </div>
                         </div>
@@ -116,9 +120,12 @@ export default function RaumplanerApp() {
                         <>
                           <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
                           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:gap-3">
-                            <button onClick={() => setCurrentStep(4)} className="flex-1 rounded-xl py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Im Shop ansehen</button>
-                            <button onClick={handleTryAnother} className="flex-1 rounded-xl border py-3 text-sm font-medium" style={{ borderColor: "var(--grey-border)", color: "var(--black)" }}>Anderer Boden</button>
-                            <button onClick={handleDownload} className="flex-1 rounded-xl py-3 text-sm font-medium text-white" style={{ backgroundColor: "var(--green)" }}>Bild speichern</button>
+                            <button onClick={() => setCurrentStep(4)} className="relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-semibold" style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}>
+                              <span className="relative z-10">Im Shop ansehen</span>
+                              <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />
+                            </button>
+                            <button onClick={handleTryAnother} className="flex-1 rounded-xl border py-3 text-sm font-medium transition-colors hover:bg-gray-50" style={{ borderColor: "var(--grey-border)", color: "var(--dark)" }}>Anderer Boden</button>
+                            <button onClick={handleDownload} className="flex-1 rounded-xl py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--black)" }}>Bild speichern</button>
                           </div>
                         </>
                       ) : null}

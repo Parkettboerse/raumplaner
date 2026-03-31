@@ -176,15 +176,15 @@ export default function BeforeAfterSlider({
       {/* Labels */}
       <span
         ref={labelBeforeRef}
-        className="absolute left-3 top-3 z-[15] rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm transition-opacity duration-150"
-        style={{ backgroundColor: "rgba(26, 26, 24, 0.55)" }}
+        className="absolute left-3 top-3 z-[15] rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm transition-opacity duration-150"
+        style={{ backgroundColor: "rgba(13, 13, 13, 0.6)" }}
       >
         Vorher
       </span>
       <span
         ref={labelAfterRef}
-        className="absolute right-3 top-3 z-[15] rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm transition-opacity duration-150"
-        style={{ backgroundColor: "rgba(26, 26, 24, 0.55)" }}
+        className="absolute right-3 top-3 z-[15] rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm transition-opacity duration-150"
+        style={{ backgroundColor: "var(--gold)", color: "var(--black)" }}
       >
         Nachher
       </span>

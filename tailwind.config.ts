@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        body: ["DM Sans", "sans-serif"],
+        outfit: ["var(--font-outfit)", "sans-serif"],
       },
     },
   },

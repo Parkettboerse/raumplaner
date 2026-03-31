@@ -53,10 +53,11 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
         <button
           onClick={onApply}
           disabled={!selectedFloor}
-          className="w-full rounded-lg py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-          style={{ backgroundColor: selectedFloor ? "var(--black)" : "var(--grey-border)" }}
+          className="relative w-full overflow-hidden rounded-xl py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-30"
+          style={{ backgroundColor: selectedFloor ? "var(--gold)" : "var(--grey-border)", color: selectedFloor ? "var(--black)" : "var(--grey)" }}
         >
-          Boden anwenden
+          <span className="relative z-10">Boden anwenden</span>
+          {selectedFloor && <div className="absolute inset-0 z-0" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",animation:"shine 2.5s infinite"}} />}
         </button>
       </div>
     </div>
