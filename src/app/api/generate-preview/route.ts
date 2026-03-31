@@ -19,18 +19,17 @@ function b64ToBuffer(dataUrl: string): Buffer {
 async function detectSize(dataUrl: string): Promise<"1024x1024" | "1536x1024" | "1024x1536"> {
   try {
     const buffer = b64ToBuffer(dataUrl);
-    const metadata = await sharp(buffer).metadata();
-    const w = metadata.width || 0;
-    const h = metadata.height || 0;
-    console.log("[detect-size] width:", w, "height:", h);
-    if (w > 0 && h > 0) {
+    const { width: w, height: h } = await sharp(buffer).rotate().toBuffer().then(
+      (rotated) => sharp(rotated).metadata()
+    );
+    console.log("[detect-size] rotated width:", w, "height:", h);
+    if (w && h) {
       const ratio = w / h;
       if (ratio > 1.15) return "1536x1024";
       if (ratio < 0.85) return "1024x1536";
-      return "1024x1024";
     }
   } catch (e) {
-    console.error("[detect-size] Error:", e);
+    console.error("[detect-size]", e);
   }
   return "1024x1024";
 }
