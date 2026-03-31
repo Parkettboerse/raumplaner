@@ -54,14 +54,16 @@ export async function POST(request: NextRequest) {
     const openai = getClient();
     const size = await detectSize(roomImage);
 
-    const roomBuffer = b64ToBuffer(roomImage);
+    const rawBuffer = b64ToBuffer(roomImage);
+    const roomBuffer = await sharp(rawBuffer).rotate().toBuffer();
     const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
 
     const images: any[] = [roomFile];
     let prompt: string;
 
     if (textureImage) {
-      const texBuffer = b64ToBuffer(textureImage);
+      const rawTexBuffer = b64ToBuffer(textureImage);
+      const texBuffer = await sharp(rawTexBuffer).rotate().toBuffer();
       const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
       images.push(texFile);
       prompt = "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.";
