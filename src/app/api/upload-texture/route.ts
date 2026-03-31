@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
   });
 
   if (productId) {
-    const product = getProductById(productId);
+    const product = await getProductById(productId);
     if (product) {
-      updateProduct(productId, { texture_url: blob.url });
+      await updateProduct(productId, { texture_url: blob.url });
     }
   }
 

@@ -3,7 +3,7 @@ import { getProducts, addProduct } from "@/lib/products";
 import { FloorProduct } from "@/types";
 
 export async function GET() {
-  const products = getProducts();
+  const products = await getProducts();
   return NextResponse.json(products);
 }
 
@@ -45,6 +45,6 @@ export async function POST(request: NextRequest) {
     shop_url: body.shop_url,
   };
 
-  addProduct(product);
+  await addProduct(product);
   return NextResponse.json(product, { status: 201 });
 }

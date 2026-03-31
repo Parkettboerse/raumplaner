@@ -5,7 +5,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const product = getProductById(params.id);
+  const product = await getProductById(params.id);
   if (!product) {
     return NextResponse.json(
       { error: "Produkt nicht gefunden" },
@@ -20,7 +20,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const body = await request.json();
-  const updated = updateProduct(params.id, body);
+  const updated = await updateProduct(params.id, body);
   if (!updated) {
     return NextResponse.json(
       { error: "Produkt nicht gefunden" },
@@ -34,7 +34,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deleted = deleteProduct(params.id);
+  const deleted = await deleteProduct(params.id);
   if (!deleted) {
     return NextResponse.json(
       { error: "Produkt nicht gefunden" },

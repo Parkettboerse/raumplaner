@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   const dataRows = rows.slice(1);
-  const existingProducts = getProducts();
+  const existingProducts = await getProducts();
   const existingIds = new Set(existingProducts.map((p) => p.id));
 
   const imported: FloorProduct[] = [];
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       shop_url: shopIdx !== -1 ? row[shopIdx] || "" : "",
     };
 
-    upsertProduct(product);
+    await upsertProduct(product);
     imported.push(product);
   }
 
