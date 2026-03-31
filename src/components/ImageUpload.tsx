@@ -26,6 +26,34 @@ const FEATURES = [
   },
 ];
 
+const MAX_WIDTH = 1920;
+const JPEG_QUALITY = 0.7;
+
+function compressImage(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > MAX_WIDTH) {
+        h = Math.round(h * (MAX_WIDTH / w));
+        w = MAX_WIDTH;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas nicht verfügbar"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+    };
+    img.onerror = () => reject(new Error("Bild konnte nicht geladen werden"));
+    img.src = src;
+  });
+}
+
 export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +84,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
     setProcessing(true);
 
-    // HEIC: always convert server-side (Chrome doesn't support HEIC natively)
+    // HEIC: convert server-side, then compress client-side
     if (isHeic) {
       setProcessingText("HEIC wird konvertiert...");
       try {
@@ -72,7 +100,9 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
           setProcessing(false);
           return;
         }
-        setPreview(data.image);
+        setProcessingText("Bild wird komprimiert...");
+        const compressed = await compressImage(data.image);
+        setPreview(compressed);
         setProcessing(false);
       } catch (err) {
         console.error("HEIC conversion error:", err);
@@ -82,11 +112,16 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       return;
     }
 
-    // JPG/PNG/WebP: read directly as base64
-    setProcessingText("Bild wird verarbeitet...");
+    // JPG/PNG/WebP: compress via canvas (resize to max 1920px, JPEG 0.7)
+    setProcessingText("Bild wird komprimiert...");
     const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result as string);
+    reader.onload = async () => {
+      try {
+        const compressed = await compressImage(reader.result as string);
+        setPreview(compressed);
+      } catch {
+        setError("Fehler beim Verarbeiten des Bildes.");
+      }
       setProcessing(false);
     };
     reader.onerror = () => {
