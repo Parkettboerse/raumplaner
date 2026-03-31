@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (isDemoMode()) {
+    console.log("[detect-floor] Demo mode, using fallback polygon");
     return NextResponse.json({ points: FALLBACK, demo: true });
   }
 
@@ -54,32 +55,41 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: "text",
-              text: `Analyze this room photo. Identify the visible floor area.
-Return ONLY a JSON object: {"points": [{"x": number, "y": number}]}
-where each point is a corner of the floor area as percentage (0-100) of image width (x) and height (y).
-Start top-left and go clockwise. Include 4-6 points that precisely outline the floor polygon.
-Trace along walls, furniture edges, and door frames.
-Return ONLY valid JSON, no markdown, no explanation.`,
+              text: `Look at this room photo from a normal standing perspective. Identify ONLY the floor surface - the horizontal ground that people walk on.
+
+Do NOT include walls, furniture, objects, or vertical surfaces.
+
+Return ONLY valid JSON: {"points": [{"x": number, "y": number}]}
+where points are corners of the visible floor area as percentages (0-100) of image width and height.
+x=0 is the left edge, x=100 is the right edge.
+y=0 is the top edge, y=100 is the bottom edge.
+
+Trace the floor edges precisely where floor meets walls and furniture bases.
+Go clockwise starting from the top-left corner of the floor area.
+Use 4-8 points for accuracy.
+
+Return ONLY the JSON object. No markdown, no backticks, no explanation.`,
             },
             {
               type: "image_url",
               image_url: {
                 url: roomImage,
-                detail: "low",
+                detail: "high",
               },
             },
           ],
         },
       ],
-      max_tokens: 300,
+      max_tokens: 400,
       temperature: 0.1,
     });
 
     const content = response.choices[0]?.message?.content || "";
+    console.log("[detect-floor] GPT response:", content);
 
     const jsonMatch = content.match(/\{[\s\S]*"points"[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("Could not parse floor points from:", content);
+      console.error("[detect-floor] Could not parse JSON from response");
       return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
@@ -93,16 +103,20 @@ Return ONLY valid JSON, no markdown, no explanation.`,
         (p) =>
           typeof p.x === "number" &&
           typeof p.y === "number" &&
-          p.x >= 0 && p.x <= 100 &&
-          p.y >= 0 && p.y <= 100
+          p.x >= 0 &&
+          p.x <= 100 &&
+          p.y >= 0 &&
+          p.y <= 100
       )
     ) {
+      console.error("[detect-floor] Invalid points:", points);
       return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
+    console.log("[detect-floor] Detected floor polygon:", JSON.stringify(points));
     return NextResponse.json({ points });
   } catch (err) {
-    console.error("Floor detection error:", err);
+    console.error("[detect-floor] Error:", err);
     return NextResponse.json({ points: FALLBACK, fallback: true });
   }
 }

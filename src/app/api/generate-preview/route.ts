@@ -17,54 +17,49 @@ const FALLBACK_POLYGON: FloorPoint[] = [
   { x: 0, y: 100 },
 ];
 
+const CATEGORY_COLORS: Record<string, { r: number; g: number; b: number }> = {
+  parkett: { r: 180, g: 140, b: 90 },
+  vinyl: { r: 160, g: 155, b: 145 },
+  laminat: { r: 190, g: 165, b: 120 },
+  kork: { r: 195, g: 165, b: 110 },
+};
+
 /**
- * Tile a texture to fill the given dimensions.
- * Returns a raw PNG buffer.
+ * Tile a texture image to fill width x height.
  */
 async function tileTexture(
   textureBuffer: Buffer,
   width: number,
   height: number
 ): Promise<Buffer> {
-  // Get texture dimensions
   const meta = await sharp(textureBuffer).metadata();
   const tw = meta.width || 256;
   const th = meta.height || 256;
 
-  // Resize texture tile to a reasonable size (256px wide, keep aspect)
-  const tileSize = 256;
+  // Scale tile to ~256px wide, keep aspect ratio
+  const tileW = 256;
+  const tileH = Math.round((th / tw) * tileW);
   const tile = await sharp(textureBuffer)
-    .resize(tileSize, Math.round((th / tw) * tileSize))
+    .resize(tileW, tileH)
     .png()
     .toBuffer();
 
-  const tileMeta = await sharp(tile).metadata();
-  const tileW = tileMeta.width!;
-  const tileH = tileMeta.height!;
-
-  // Calculate how many tiles we need
   const cols = Math.ceil(width / tileW);
   const rows = Math.ceil(height / tileH);
 
-  // Create a composite array of tiles
   const composites: { input: Buffer; left: number; top: number }[] = [];
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      composites.push({
-        input: tile,
-        left: col * tileW,
-        top: row * tileH,
-      });
+      composites.push({ input: tile, left: col * tileW, top: row * tileH });
     }
   }
 
-  // Create base image and composite all tiles
   return sharp({
     create: {
       width,
       height,
-      channels: 3,
-      background: { r: 128, g: 128, b: 128 },
+      channels: 4,
+      background: { r: 128, g: 128, b: 128, alpha: 1 },
     },
   })
     .composite(composites)
@@ -73,14 +68,21 @@ async function tileTexture(
 }
 
 /**
- * Fetch a texture image from a URL.
- * Returns the raw buffer.
+ * Fetch texture from URL. Returns buffer or null on failure.
  */
-async function fetchTexture(url: string): Promise<Buffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch texture: ${res.status}`);
-  const arrayBuffer = await res.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+async function fetchTexture(url: string): Promise<Buffer | null> {
+  try {
+    console.log("[generate-preview] Fetching texture:", url);
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error("[generate-preview] Texture fetch failed:", res.status);
+      return null;
+    }
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    console.error("[generate-preview] Texture fetch error:", err);
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -121,82 +123,63 @@ export async function POST(request: NextRequest) {
       : roomImage;
 
     const imageBuffer = Buffer.from(base64Data, "base64");
-
-    // Get original image dimensions
     const originalMeta = await sharp(imageBuffer).metadata();
     const width = originalMeta.width || 1024;
     const height = originalMeta.height || 1024;
 
-    // Ensure original is PNG for compositing
-    const originalPng = await sharp(imageBuffer).png().toBuffer();
+    console.log("[generate-preview] Image size:", width, "x", height);
 
     const polygon =
       floorPoints && floorPoints.length >= 3 ? floorPoints : FALLBACK_POLYGON;
+    console.log("[generate-preview] Floor polygon:", JSON.stringify(polygon));
 
-    // Create floor mask (white = floor, black = keep)
+    // 1. Create floor mask (white = floor area)
     const maskPng = await createFloorMask(polygon, width, height);
 
-    // Get texture: from product URL or generate a colored placeholder
-    let tiledTexture: Buffer;
-
+    // 2. Get texture
+    let textureBuffer: Buffer | null = null;
     if (product.texture_url) {
-      try {
-        const textureRaw = await fetchTexture(product.texture_url);
-        tiledTexture = await tileTexture(textureRaw, width, height);
-      } catch {
-        // Fallback: solid color based on category
-        const colors: Record<string, { r: number; g: number; b: number }> = {
-          parkett: { r: 180, g: 140, b: 90 },
-          vinyl: { r: 160, g: 155, b: 145 },
-          laminat: { r: 190, g: 165, b: 120 },
-          kork: { r: 195, g: 165, b: 110 },
-        };
-        const color = colors[product.category] || colors.parkett;
-        tiledTexture = await sharp({
-          create: { width, height, channels: 3, background: color },
-        })
-          .png()
-          .toBuffer();
-      }
+      textureBuffer = await fetchTexture(product.texture_url);
+    }
+
+    let tiledTexture: Buffer;
+    if (textureBuffer) {
+      console.log("[generate-preview] Tiling real texture");
+      tiledTexture = await tileTexture(textureBuffer, width, height);
     } else {
-      // No texture URL: use a category-based solid color
-      const colors: Record<string, { r: number; g: number; b: number }> = {
-        parkett: { r: 180, g: 140, b: 90 },
-        vinyl: { r: 160, g: 155, b: 145 },
-        laminat: { r: 190, g: 165, b: 120 },
-        kork: { r: 195, g: 165, b: 110 },
-      };
-      const color = colors[product.category] || colors.parkett;
+      console.log("[generate-preview] Using category color fallback");
+      const color = CATEGORY_COLORS[product.category] || CATEGORY_COLORS.parkett;
       tiledTexture = await sharp({
-        create: { width, height, channels: 3, background: color },
+        create: { width, height, channels: 4, background: { ...color, alpha: 1 } },
       })
         .png()
         .toBuffer();
     }
 
-    // Apply mask to texture: texture pixels where mask is white, transparent elsewhere
-    // Step 1: Extract mask as raw grayscale for alpha channel
+    // 3. Mask the texture: use floor mask as alpha channel
+    //    White in mask (255) → show texture at 80% opacity
+    //    Black in mask (0) → fully transparent
     const maskRaw = await sharp(maskPng)
-      .resize(width, height)
-      .grayscale()
+      .resize(width, height, { fit: "fill" })
+      .greyscale()
       .raw()
       .toBuffer();
 
-    // Step 2: Get tiled texture as raw RGBA
-    const textureRgba = await sharp(tiledTexture)
-      .resize(width, height)
+    const textureRaw = await sharp(tiledTexture)
+      .resize(width, height, { fit: "fill" })
       .ensureAlpha()
       .raw()
       .toBuffer();
 
-    // Step 3: Set alpha from mask, multiply by 0.85 for natural blending (shadows show through)
-    const maskedPixels = Buffer.alloc(width * height * 4);
-    for (let i = 0; i < width * height; i++) {
-      maskedPixels[i * 4] = textureRgba[i * 4];         // R
-      maskedPixels[i * 4 + 1] = textureRgba[i * 4 + 1]; // G
-      maskedPixels[i * 4 + 2] = textureRgba[i * 4 + 2]; // B
-      // Alpha = mask value * 0.85 (let shadows through)
-      maskedPixels[i * 4 + 3] = Math.round(maskRaw[i] * 0.85);
+    const pixelCount = width * height;
+    const maskedPixels = Buffer.alloc(pixelCount * 4);
+
+    for (let i = 0; i < pixelCount; i++) {
+      const offset = i * 4;
+      maskedPixels[offset] = textureRaw[offset];         // R
+      maskedPixels[offset + 1] = textureRaw[offset + 1]; // G
+      maskedPixels[offset + 2] = textureRaw[offset + 2]; // B
+      maskedPixels[offset + 3] = Math.round((maskRaw[i] / 255) * 204); // 80% of mask value (204 = 255 * 0.8)
     }
 
     const maskedTexturePng = await sharp(maskedPixels, {
@@ -205,17 +188,21 @@ export async function POST(request: NextRequest) {
       .png()
       .toBuffer();
 
-    // Step 4: Composite masked texture over original
+    // 4. Composite masked texture over original
+    const originalPng = await sharp(imageBuffer).png().toBuffer();
+
     const result = await sharp(originalPng)
       .composite([{ input: maskedTexturePng, blend: "over" }])
       .jpeg({ quality: 85 })
       .toBuffer();
 
-    const resultBase64 = `data:image/jpeg;base64,${result.toString("base64")}`;
+    console.log("[generate-preview] Result size:", result.length, "bytes");
 
-    return NextResponse.json({ resultImage: resultBase64 });
+    return NextResponse.json({
+      resultImage: `data:image/jpeg;base64,${result.toString("base64")}`,
+    });
   } catch (err) {
-    console.error("Generate preview error:", err);
+    console.error("[generate-preview] Error:", err);
     return NextResponse.json(
       { error: "Fehler bei der Vorschau-Generierung. Bitte versuchen Sie es erneut." },
       { status: 500 }
