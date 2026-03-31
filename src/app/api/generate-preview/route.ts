@@ -87,7 +87,8 @@ Replace ONLY the floor in the room photo with exactly this floor texture.
       tools: [
         {
           type: "image_generation",
-          quality: "low",
+          model: "gpt-image-1-mini",
+          quality: "medium",
           size: "1024x1024",
         },
       ],
