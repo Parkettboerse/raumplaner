@@ -30,6 +30,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [processingText, setProcessingText] = useState("Bild wird verarbeitet...");
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,70 +56,44 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
     setProcessing(true);
 
-    // Universal approach: load any image the browser can decode
-    // (Safari/Chrome support HEIC natively), draw to canvas, export as JPEG.
-    // This avoids server roundtrips and unreliable HEIC libraries.
-    const objectUrl = URL.createObjectURL(file);
-
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          // Draw to canvas and export as JPEG
-          const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("Canvas nicht verfügbar"));
-            return;
-          }
-          ctx.drawImage(img, 0, 0);
-          const jpeg = canvas.toDataURL("image/jpeg", 0.9);
-          resolve(jpeg);
-        };
-        img.onerror = () => {
-          // Browser can't decode this format — try server-side as fallback
-          if (isHeic) {
-            reject(new Error("HEIC_FALLBACK"));
-          } else {
-            reject(new Error("Bild konnte nicht geladen werden"));
-          }
-        };
-        img.src = objectUrl;
-      });
-
-      setPreview(base64);
-      setProcessing(false);
-    } catch (err: any) {
-      // HEIC fallback: send to server-side sharp conversion
-      if (err?.message === "HEIC_FALLBACK") {
-        try {
-          const fd = new FormData();
-          fd.append("file", file);
-          const res = await fetch("/api/convert-heic", {
-            method: "POST",
-            body: fd,
-          });
-          const data = await res.json();
-          if (res.ok && data.image) {
-            setPreview(data.image);
-            setProcessing(false);
-            return;
-          }
-        } catch (serverErr) {
-          console.error("Server HEIC conversion failed:", serverErr);
+    // HEIC: always convert server-side (Chrome doesn't support HEIC natively)
+    if (isHeic) {
+      setProcessingText("HEIC wird konvertiert...");
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/convert-heic", {
+          method: "POST",
+          body: fd,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.image) {
+          setError(data.error || "HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG.");
+          setProcessing(false);
+          return;
         }
-        setError(
-          "HEIC wird von Ihrem Browser nicht unterstützt. Bitte verwenden Sie JPG oder PNG, oder öffnen Sie die App in Safari."
-        );
-      } else {
-        setError("Fehler beim Laden des Bildes. Bitte versuchen Sie ein anderes Foto.");
+        setPreview(data.image);
+        setProcessing(false);
+      } catch (err) {
+        console.error("HEIC conversion error:", err);
+        setError("HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG.");
+        setProcessing(false);
       }
-      setProcessing(false);
-    } finally {
-      URL.revokeObjectURL(objectUrl);
+      return;
     }
+
+    // JPG/PNG/WebP: read directly as base64
+    setProcessingText("Bild wird verarbeitet...");
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreview(reader.result as string);
+      setProcessing(false);
+    };
+    reader.onerror = () => {
+      setError("Fehler beim Lesen der Datei.");
+      setProcessing(false);
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleDragOver(e: DragEvent) {
@@ -300,7 +275,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
               style={{ borderColor: "var(--oak-pale)", borderTopColor: "var(--oak)" }}
             />
             <p className="text-sm font-medium" style={{ color: "var(--oak)" }}>
-              Bild wird verarbeitet...
+              {processingText}
             </p>
           </div>
         )}

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import sharp from "sharp";
+import convert from "heic-convert";
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -21,17 +23,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const jpegBuffer = await sharp(buffer)
-      .jpeg({ quality: 85 })
-      .toBuffer();
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
 
-    const base64 = `data:image/jpeg;base64,${jpegBuffer.toString("base64")}`;
+    const jpegBuffer = await convert({
+      buffer: inputBuffer,
+      format: "JPEG",
+      quality: 0.85,
+    });
+
+    const base64 = `data:image/jpeg;base64,${Buffer.from(jpegBuffer).toString("base64")}`;
     return NextResponse.json({ image: base64 });
   } catch (err) {
-    console.error("Image conversion error:", err);
+    console.error("HEIC conversion error:", err);
     return NextResponse.json(
-      { error: "Bildkonvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG." },
+      { error: "HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG." },
       { status: 500 }
     );
   }
