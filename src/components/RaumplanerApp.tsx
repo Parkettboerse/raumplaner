@@ -9,7 +9,7 @@ import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
 import FloorPreview from "./FloorPreview";
 
-interface FloorPoint {
+interface Corner {
   x: number;
   y: number;
 }
@@ -20,7 +20,7 @@ export default function RaumplanerApp() {
   const [selectedFloor, setSelectedFloor] = useState<FloorProduct | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [floorPoints, setFloorPoints] = useState<FloorPoint[] | null>(null);
+  const [floorCorners, setFloorCorners] = useState<Corner[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [products, setProducts] = useState<FloorProduct[]>([]);
@@ -48,8 +48,8 @@ export default function RaumplanerApp() {
         body: JSON.stringify({ roomImage: image }),
       });
       const data = await res.json();
-      if (data.points) {
-        setFloorPoints(data.points);
+      if (data.corners) {
+        setFloorCorners(data.corners);
       }
     } catch (err) {
       console.error("Floor detection failed:", err);
@@ -67,7 +67,7 @@ export default function RaumplanerApp() {
     setUploadedImage(null);
     setSelectedFloor(null);
     setResultImage(null);
-    setFloorPoints(null);
+    setFloorCorners(null);
     setError(null);
     setAnalyzing(false);
     setRendering(false);
@@ -115,10 +115,10 @@ export default function RaumplanerApp() {
     sidebarRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
-  // Use fallback polygon if detection hasn't completed
-  const activeFloorPoints = floorPoints || [
-    { x: 0, y: 55 },
-    { x: 100, y: 55 },
+  // Fallback: trapezoid covering bottom half (perspective-like)
+  const activeCorners = floorCorners || [
+    { x: 10, y: 50 },
+    { x: 90, y: 50 },
     { x: 100, y: 100 },
     { x: 0, y: 100 },
   ];
@@ -360,7 +360,7 @@ export default function RaumplanerApp() {
       {rendering && uploadedImage && selectedFloor && (
         <FloorPreview
           originalImage={uploadedImage}
-          floorPoints={activeFloorPoints}
+          floorCorners={activeCorners}
           textureUrl={selectedFloor.texture_url}
           onResult={handlePreviewResult}
           onError={handlePreviewError}
