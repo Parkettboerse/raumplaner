@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (isDemoMode()) {
-    console.log("[detect-floor] Demo mode, using fallback polygon");
+    console.log("[detect-floor] Demo mode — using fallback polygon");
     return NextResponse.json({ points: FALLBACK, demo: true });
   }
 
@@ -48,25 +48,24 @@ export async function POST(request: NextRequest) {
     const openai = getOpenAIClient();
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Look at this room photo from a normal standing perspective. Identify ONLY the floor surface - the horizontal ground that people walk on.
+              text: `You are analyzing a room photo to find the floor. Look at where people would walk. The floor is the horizontal ground surface.
 
-Do NOT include walls, furniture, objects, or vertical surfaces.
+Return ONLY this exact JSON format, nothing else:
+{"points":[{"x":number,"y":number}]}
 
-Return ONLY valid JSON: {"points": [{"x": number, "y": number}]}
-where points are corners of the visible floor area as percentages (0-100) of image width and height.
-x=0 is the left edge, x=100 is the right edge.
-y=0 is the top edge, y=100 is the bottom edge.
+where each point is a percentage (0-100) of image width (x) and height (y).
+x=0 is left edge, x=100 is right edge. y=0 is top edge, y=100 is bottom edge.
 
-Trace the floor edges precisely where floor meets walls and furniture bases.
-Go clockwise starting from the top-left corner of the floor area.
-Use 4-8 points for accuracy.
+Provide 4-8 points tracing the visible floor outline clockwise.
+Be VERY precise - the floor starts where it meets the bottom of walls and the base of furniture.
+Do not include any vertical surfaces.
 
 Return ONLY the JSON object. No markdown, no backticks, no explanation.`,
             },
@@ -85,11 +84,11 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`,
     });
 
     const content = response.choices[0]?.message?.content || "";
-    console.log("[detect-floor] GPT response:", content);
+    console.log("[detect-floor] GPT-4o response:", content);
 
     const jsonMatch = content.match(/\{[\s\S]*"points"[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("[detect-floor] Could not parse JSON from response");
+      console.error("[detect-floor] Could not extract JSON");
       return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
@@ -103,17 +102,15 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`,
         (p) =>
           typeof p.x === "number" &&
           typeof p.y === "number" &&
-          p.x >= 0 &&
-          p.x <= 100 &&
-          p.y >= 0 &&
-          p.y <= 100
+          p.x >= 0 && p.x <= 100 &&
+          p.y >= 0 && p.y <= 100
       )
     ) {
       console.error("[detect-floor] Invalid points:", points);
       return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
-    console.log("[detect-floor] Detected floor polygon:", JSON.stringify(points));
+    console.log("[detect-floor] Detected polygon:", JSON.stringify(points));
     return NextResponse.json({ points });
   } catch (err) {
     console.error("[detect-floor] Error:", err);
