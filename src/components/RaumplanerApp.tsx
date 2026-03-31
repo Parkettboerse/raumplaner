@@ -112,12 +112,12 @@ export default function RaumplanerApp() {
             <div className="flex items-center justify-center" style={{ minHeight: "520px", background: "var(--bg)" }}>
               <div className="animate-fadeUp rounded-3xl bg-white text-center" style={{ padding: "48px 52px", boxShadow: "0 24px 64px rgba(0,0,0,0.07)" }}>
                 <div className="mx-auto mb-5 rounded-full" style={{ width: "52px", height: "52px", border: "3px solid #eee", borderTopColor: "var(--gold)", animation: "spin 0.7s linear infinite" }} />
-                <p className="text-[18px] font-bold" style={{ color: "var(--dark)" }}>Vorschau wird erstellt</p>
-                <p className="mt-2 text-[14px]" style={{ color: "var(--grey)" }}>{selectedFloor?.name}</p>
+                <p className="text-[18px] font-bold" style={{ color: "var(--dark)" }}>KI generiert Vorschau</p>
+                <p className="mt-2 text-[14px]" style={{ color: "var(--grey)" }}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
                 <div className="mx-auto mt-6 overflow-hidden rounded-full" style={{ height: "3px", maxWidth: "200px", background: "#eee" }}>
                   <div className="h-full rounded-full" style={{ background: "var(--gold)", animation: "loadProgress 15s ease-out forwards" }} />
                 </div>
-                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Bitte haben Sie einen Moment Geduld</p>
+                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Dies kann 10–20 Sekunden dauern</p>
               </div>
             </div>
           ) : resultImage ? (
