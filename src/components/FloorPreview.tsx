@@ -15,14 +15,64 @@ interface FloorPreviewProps {
   onError: (message: string) => void;
 }
 
+const TILE_SIZE = 150; // px per texture tile — good balance of detail and repeat
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    // Only set crossOrigin for external URLs (Blob Storage etc.)
+    // Same-origin paths (e.g. /textures/...) don't need it and it can cause issues
+    if (src.startsWith("http")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Image load failed"));
+    img.onerror = () => reject(new Error(`Failed to load: ${src.slice(0, 80)}`));
     img.src = src;
   });
+}
+
+function createFallbackTexture(): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = TILE_SIZE;
+  c.height = TILE_SIZE;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#b48c5a";
+  ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+  // Wood grain lines
+  ctx.strokeStyle = "#a07840";
+  ctx.lineWidth = 1;
+  for (let y = 0; y < TILE_SIZE; y += 12) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + Math.random() * 3);
+    ctx.lineTo(TILE_SIZE, y + Math.random() * 3);
+    ctx.stroke();
+  }
+  // Plank gaps
+  ctx.strokeStyle = "#8a6830";
+  ctx.lineWidth = 2;
+  for (let x = 0; x < TILE_SIZE; x += 50) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, TILE_SIZE);
+    ctx.stroke();
+  }
+  return c;
+}
+
+/**
+ * Resize a loaded image to a consistent tile size for repeating.
+ */
+function createTile(img: HTMLImageElement): HTMLCanvasElement {
+  const aspect = img.naturalHeight / img.naturalWidth;
+  const tileW = TILE_SIZE;
+  const tileH = Math.round(TILE_SIZE * aspect);
+
+  const c = document.createElement("canvas");
+  c.width = tileW;
+  c.height = tileH;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, tileW, tileH);
+  return c;
 }
 
 export default function FloorPreview({
@@ -42,6 +92,8 @@ export default function FloorPreview({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    console.log("[FloorPreview] Rendering with texture:", textureUrl?.slice(0, 80) || "(empty)");
+
     try {
       // 1. Load room image
       const roomImg = await loadImage(originalImage);
@@ -55,19 +107,20 @@ export default function FloorPreview({
       // 2. Draw original room
       ctx.drawImage(roomImg, 0, 0, W, H);
 
-      // 3. Load texture
-      let texImg: HTMLImageElement;
-      try {
-        texImg = await loadImage(textureUrl);
-      } catch {
-        // Fallback: simple wood color
-        const fc = document.createElement("canvas");
-        fc.width = 128;
-        fc.height = 128;
-        const fctx = fc.getContext("2d")!;
-        fctx.fillStyle = "#b48c5a";
-        fctx.fillRect(0, 0, 128, 128);
-        texImg = await loadImage(fc.toDataURL());
+      // 3. Load texture and create tile
+      let tileCanvas: HTMLCanvasElement;
+      if (textureUrl && textureUrl.trim() !== "") {
+        try {
+          const texImg = await loadImage(textureUrl);
+          tileCanvas = createTile(texImg);
+          console.log("[FloorPreview] Texture loaded, tile:", tileCanvas.width, "x", tileCanvas.height);
+        } catch (err) {
+          console.warn("[FloorPreview] Texture load failed, using fallback:", err);
+          tileCanvas = createFallbackTexture();
+        }
+      } else {
+        console.log("[FloorPreview] No texture URL, using fallback");
+        tileCanvas = createFallbackTexture();
       }
 
       // 4. Convert corner percentages to pixels
@@ -76,11 +129,11 @@ export default function FloorPreview({
         y: (c.y / 100) * H,
       }));
 
-      // 5. Create texture pattern
-      const pattern = ctx.createPattern(texImg, "repeat");
+      // 5. Create repeating pattern from tile
+      const pattern = ctx.createPattern(tileCanvas, "repeat");
       if (!pattern) throw new Error("Pattern creation failed");
 
-      // 6. Clip to floor polygon and fill with texture at 75% opacity
+      // 6. Clip to floor polygon and fill with tiled texture
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -100,7 +153,7 @@ export default function FloorPreview({
       const result = canvas.toDataURL("image/jpeg", 0.92);
       onResult(result);
     } catch (err) {
-      console.error("FloorPreview error:", err);
+      console.error("[FloorPreview] Error:", err);
       onError("Vorschau konnte nicht erstellt werden.");
     }
   }, [originalImage, corners, textureUrl, onResult, onError]);

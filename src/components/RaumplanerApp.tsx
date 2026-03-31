@@ -58,6 +58,7 @@ export default function RaumplanerApp() {
 
   function handleApplyFloor() {
     if (!selectedFloor || !uploadedImage || !floorCorners) return;
+    console.log("[Raumplaner] Applying floor:", selectedFloor.name, "texture:", selectedFloor.texture_url);
     setError(null);
     setRendering(true);
     setCurrentStep(4);
