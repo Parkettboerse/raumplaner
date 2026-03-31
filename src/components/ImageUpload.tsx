@@ -54,9 +54,25 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
     if (isHeic) {
       try {
-        const heic2anyModule = await import("heic2any");
-        const heic2any = heic2anyModule.default || heic2anyModule;
-        const converted = await heic2any({
+        // heic2any is browser-only (needs window/Worker), so dynamic import is required
+        const heic2anyModule = await import(/* webpackChunkName: "heic2any" */ "heic2any");
+        // Handle both ESM default export and CJS module.exports
+        const convertHeic: (opts: {
+          blob: Blob;
+          toType: string;
+          quality: number;
+        }) => Promise<Blob | Blob[]> =
+          typeof heic2anyModule.default === "function"
+            ? heic2anyModule.default
+            : typeof heic2anyModule === "function"
+              ? (heic2anyModule as any)
+              : (heic2anyModule as any).heic2any;
+
+        if (typeof convertHeic !== "function") {
+          throw new Error("heic2any Modul konnte nicht geladen werden");
+        }
+
+        const converted = await convertHeic({
           blob: file,
           toType: "image/jpeg",
           quality: 0.8,
