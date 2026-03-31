@@ -54,24 +54,21 @@ export default function RaumplanerApp() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--grey-bg)" }}>
+    <div className="min-h-screen bg-white">
 
       {/* Step 1: Full-width upload */}
       {currentStep === 1 && (
-        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
-          <ImageUpload onImageUploaded={handleImageUploaded} />
-        </div>
+        <ImageUpload onImageUploaded={handleImageUploaded} />
       )}
 
-      {/* Steps 2-4: App container */}
+      {/* Steps 2-4 */}
       {currentStep >= 2 && (
-        <div className="px-4 py-4 sm:px-6 sm:py-6">
-          {/* Step bar */}
-          <div className="mb-4 flex justify-center">
+        <div>
+          <div className="flex justify-center border-b py-3" style={{ borderColor: "var(--grey-border)" }}>
             <StepIndicator currentStep={Math.min(currentStep, 3)} />
           </div>
 
-          <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl bg-white" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+          <div className="mx-auto max-w-7xl">
             <div className="flex flex-col lg:flex-row">
               {/* Left */}
               <div className="flex-[65] border-b lg:border-b-0 lg:border-r" style={{ borderColor: "var(--grey-border)" }}>

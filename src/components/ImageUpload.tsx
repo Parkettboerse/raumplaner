@@ -51,7 +51,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   // Preview state
   if (preview) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-5 px-4 sm:px-0 animate-fadeUp">
+      <div className="mx-auto flex max-w-3xl flex-col gap-5 px-5 sm:px-8 animate-fadeUp">
         <div className="relative w-full overflow-hidden rounded-2xl shadow-lg">
           <img src={preview} alt="Raumfoto" className="w-full object-contain" />
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-12">
@@ -70,15 +70,15 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   // Main upload view
   return (
     <div>
-      {/* Black hero */}
-      <div className="relative overflow-hidden rounded-t-2xl sm:rounded-2xl" style={{background:"var(--black)"}}>
+      {/* Black hero — full width, no border-radius */}
+      <div className="relative overflow-hidden" style={{background:"var(--black)"}}>
         {/* Grain texture */}
         <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
         {/* Gold orbs */}
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full opacity-20" style={{background:"radial-gradient(circle,rgba(200,164,21,0.4),transparent 70%)"}} />
         <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full opacity-15" style={{background:"radial-gradient(circle,rgba(200,164,21,0.3),transparent 70%)"}} />
 
-        <div className="relative px-6 pb-6 pt-8 sm:px-10 sm:pb-8 sm:pt-12">
+        <div className="relative mx-auto max-w-3xl px-5 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-12">
           {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 animate-fadeUp" style={{animationDelay:"0.1s"}}>
             <span className="h-2 w-2 rounded-full" style={{backgroundColor:"var(--gold)",animation:"pulse 2s infinite"}} />
@@ -139,13 +139,13 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
         </div>
 
         {/* Transition gradient */}
-        <div className="h-16" style={{background:"linear-gradient(to bottom, var(--black), var(--bg))"}} />
+        <div className="h-16" style={{background:"linear-gradient(to bottom, var(--black), var(--white))"}} />
       </div>
 
-      {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mx-auto mt-4 max-w-3xl rounded-xl bg-red-50 px-5 py-3 text-sm text-red-600">{error}</p>}
 
       {/* "So funktioniert's" */}
-      <div className="px-4 pb-4 pt-2 sm:px-0 sm:pt-4">
+      <div className="mx-auto max-w-3xl px-5 pb-6 pt-2 sm:px-8 sm:pt-4">
         <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest" style={{color:"var(--grey)"}}>So funktioniert&apos;s</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
