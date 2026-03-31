@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FloorProduct } from "@/types";
 import StepIndicator from "./StepIndicator";
 import ImageUpload from "./ImageUpload";
@@ -8,7 +8,6 @@ import FloorCornerPicker from "./FloorCornerPicker";
 import FloorCatalog from "./FloorCatalog";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
-import FloorPreview from "./FloorPreview";
 
 interface Corner { x: number; y: number }
 
@@ -47,26 +46,69 @@ export default function RaumplanerApp() {
     setResultImage(null); setError(null); setRendering(false); setCurrentStep(1);
   }
 
-  function handleApplyFloor() {
-    if (!selectedFloor || !uploadedImage || !floorCorners) return;
-    setError(null); setResultImage(null); setRendering(true); setCurrentStep(4);
-    // FloorPreview component renders automatically
-  }
-
-  // Called when user picks a different floor in step 4 — instant re-render
-  function handleSwitchFloor(floor: FloorProduct) {
-    setSelectedFloor(floor);
+  async function generatePreview(floor: FloorProduct) {
+    if (!uploadedImage) return;
+    setError(null);
     setResultImage(null);
     setRendering(true);
+    setCurrentStep(4);
+
+    try {
+      // Load texture image as base64 if URL exists
+      let textureImage: string | undefined;
+      if (floor.texture_url) {
+        try {
+          const texRes = await fetch(floor.texture_url);
+          if (texRes.ok) {
+            const blob = await texRes.blob();
+            textureImage = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch (e) {
+          console.warn("[Raumplaner] Could not load texture:", e);
+        }
+      }
+
+      console.log("[Raumplaner] Generating preview for:", floor.name, "texture:", !!textureImage);
+
+      const res = await fetch("/api/generate-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomImage: uploadedImage,
+          floorId: floor.id,
+          textureImage,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Fehler bei der Generierung");
+        setRendering(false);
+        return;
+      }
+
+      setResultImage(data.resultImage);
+      setRendering(false);
+    } catch (err) {
+      console.error("[Raumplaner] Generate error:", err);
+      setError("Netzwerkfehler. Bitte erneut versuchen.");
+      setRendering(false);
+    }
   }
 
-  const handlePreviewResult = useCallback((base64: string) => {
-    setResultImage(base64); setRendering(false);
-  }, []);
+  function handleApplyFloor() {
+    if (!selectedFloor || !uploadedImage) return;
+    generatePreview(selectedFloor);
+  }
 
-  const handlePreviewError = useCallback((msg: string) => {
-    setError(msg); setRendering(false);
-  }, []);
+  function handleSwitchFloor(floor: FloorProduct) {
+    setSelectedFloor(floor);
+    generatePreview(floor);
+  }
 
   function handleTryAnother() {
     setSelectedFloor(null); setResultImage(null); setError(null);
@@ -217,16 +259,7 @@ export default function RaumplanerApp() {
         </div>
       </main>
 
-      {/* Hidden canvas renderer */}
-      {rendering && uploadedImage && selectedFloor && floorCorners && (
-        <FloorPreview
-          originalImage={uploadedImage}
-          corners={floorCorners}
-          textureUrl={selectedFloor.texture_url}
-          onResult={handlePreviewResult}
-          onError={handlePreviewError}
-        />
-      )}
+      {/* FloorPreview kept for potential offline/fallback use */}
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
