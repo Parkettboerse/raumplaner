@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
-import { getProducts, saveProducts } from "@/lib/blob-products";
+import { getProducts, saveProducts, slugify } from "@/lib/blob-products";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const ext = file.type === "image/png" ? "png" : "jpg";
-    const blobName = productId ? `textures/${productId}.${ext}` : `textures/${Date.now()}.${ext}`;
+    // Name by product ID (already a slug) — ensures auto-matching works
+    const safeName = productId ? slugify(productId) : String(Date.now());
+    const blobName = `textures/${safeName}.${ext}`;
 
     const blob = await put(blobName, buffer, {
       access: "public",
