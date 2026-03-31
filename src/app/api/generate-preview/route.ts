@@ -61,12 +61,13 @@ export async function POST(request: NextRequest) {
       prompt = "Ersetze nur den Boden in diesem Raum mit neuem Bodenbelag. Alles andere bleibt gleich.";
     }
 
-    const result = await openai.images.edit({
+    const result = await (openai.images.edit as any)({
       model: "gpt-image-1.5",
       image: images,
       prompt,
       size,
-      quality: "low",
+      quality: "medium",
+      input_fidelity: "high",
     });
 
     const b64 = result.data?.[0]?.b64_json;
