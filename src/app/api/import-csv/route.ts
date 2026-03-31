@@ -36,6 +36,10 @@ export async function POST(request: NextRequest) {
     const detailIdx = header.findIndex((h) => h === "detail");
     const priceIdx = header.findIndex((h) => h === "preis" || h === "price");
     const shopIdx = header.findIndex((h) => h.includes("shop") || h.includes("url"));
+    const formatIdx = header.findIndex((h) => h === "format");
+    const dimIdx = header.findIndex((h) => h === "dimensions" || h === "maße" || h === "masse" || h === "maβe");
+    const verlIdx = header.findIndex((h) => h === "verlegemuster" || h.includes("verlege"));
+    const oberfIdx = header.findIndex((h) => h === "oberflaeche" || h === "oberfläche" || h.includes("oberfla"));
 
     if (nameIdx === -1 || catIdx === -1)
       return NextResponse.json({ error: 'Spalten "Name" und "Kategorie" fehlen' }, { status: 400 });
@@ -53,13 +57,17 @@ export async function POST(request: NextRequest) {
       if (!validCats.includes(category)) { errors.push(`Zeile ${i+1}: Ungültige Kategorie`); continue; }
 
       const id = `${category}-${slugify(name)}`;
-      const product = {
+      const product: any = {
         id, name, category,
         detail: detailIdx !== -1 ? row[detailIdx] || "" : "",
         price: priceIdx !== -1 ? row[priceIdx] || "" : "",
         texture_url: "",
         shop_url: shopIdx !== -1 ? row[shopIdx] || "" : "",
       };
+      if (formatIdx !== -1 && row[formatIdx]) product.format = row[formatIdx].trim();
+      if (dimIdx !== -1 && row[dimIdx]) product.dimensions = row[dimIdx].trim();
+      if (verlIdx !== -1 && row[verlIdx]) product.verlegemuster = row[verlIdx].trim();
+      if (oberfIdx !== -1 && row[oberfIdx]) product.oberflaeche = row[oberfIdx].trim();
 
       const existing = products.findIndex((p: any) => p.id === id);
       if (existing !== -1) products[existing] = { ...products[existing], ...product };

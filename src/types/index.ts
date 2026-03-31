@@ -6,4 +6,8 @@ export interface FloorProduct {
   price: string;
   texture_url: string;
   shop_url: string;
+  format?: string;
+  dimensions?: string;
+  verlegemuster?: string;
+  oberflaeche?: string;
 }

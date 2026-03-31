@@ -18,6 +18,10 @@ const emptyForm = {
   detail: "",
   price: "",
   shop_url: "",
+  format: "",
+  dimensions: "",
+  verlegemuster: "",
+  oberflaeche: "",
 };
 
 function compressImageFile(file: File, maxWidth = 512, quality = 0.7): Promise<Blob> {
@@ -240,6 +244,10 @@ export default function AdminPage() {
           detail: form.detail,
           price: form.price,
           shop_url: form.shop_url,
+          format: form.format,
+          dimensions: form.dimensions,
+          verlegemuster: form.verlegemuster,
+          oberflaeche: form.oberflaeche,
         };
         const res = await fetchWithTimeout(`/api/products/${editingId}`, {
           method: "PUT",
@@ -261,6 +269,10 @@ export default function AdminPage() {
           price: form.price,
           texture_url: "",
           shop_url: form.shop_url,
+          format: form.format || undefined,
+          dimensions: form.dimensions || undefined,
+          verlegemuster: form.verlegemuster || undefined,
+          oberflaeche: form.oberflaeche || undefined,
         };
         const res = await fetchWithTimeout("/api/products", {
           method: "POST",
@@ -343,6 +355,10 @@ export default function AdminPage() {
       detail: product.detail,
       price: product.price,
       shop_url: product.shop_url,
+      format: product.format || "",
+      dimensions: product.dimensions || "",
+      verlegemuster: product.verlegemuster || "",
+      oberflaeche: product.oberflaeche || "",
     });
     setTextureFile(null);
     formRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -752,6 +768,33 @@ export default function AdminPage() {
                   className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
                   placeholder="https://www.parkettboerse.net/shop/..."
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-600">Format</label>
+                <select value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none">
+                  <option value="">— wählen —</option>
+                  <option value="Planke">Planke</option>
+                  <option value="Diele">Diele</option>
+                  <option value="Fliese">Fliese</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-600">Maße</label>
+                <input type="text" value={form.dimensions} onChange={(e) => setForm({ ...form, dimensions: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none" placeholder="z.B. 1220x185mm" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-600">Verlegemuster</label>
+                <select value={form.verlegemuster} onChange={(e) => setForm({ ...form, verlegemuster: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none">
+                  <option value="">— wählen —</option>
+                  <option value="Schiffsboden">Schiffsboden</option>
+                  <option value="Fischgrät">Fischgrät</option>
+                  <option value="versetzt">Versetzt</option>
+                  <option value="gerade">Gerade</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-600">Oberfläche</label>
+                <input type="text" value={form.oberflaeche} onChange={(e) => setForm({ ...form, oberflaeche: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none" placeholder="z.B. gebürstet geölt" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-600">

@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "roomImage und floorId erforderlich" }, { status: 400 });
   }
 
+  const { getProducts } = await import("@/lib/blob-products");
+  const products = await getProducts();
+  const product = products.find((p: any) => p.id === floorId) || { name: floorId, format: "", dimensions: "", verlegemuster: "", oberflaeche: "" };
+
   const key = process.env.OPENAI_API_KEY;
   if (!key || key === "sk-dein-key-hier" || key.trim() === "") {
     return NextResponse.json({ resultImage: roomImage, demo: true });
@@ -58,15 +62,24 @@ export async function POST(request: NextRequest) {
     const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
 
     const images: any[] = [roomFile];
+
+    const parts = [
+      product.name,
+      product.format,
+      product.dimensions,
+      product.verlegemuster ? `Verlegemuster: ${product.verlegemuster}` : null,
+      product.oberflaeche ? `Oberfläche: ${product.oberflaeche}` : null,
+    ].filter(Boolean).join(", ");
+
     let prompt: string;
 
     if (textureImage) {
       const texBuffer = b64ToBuffer(textureImage);
       const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
       images.push(texFile);
-      prompt = "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.";
+      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     } else {
-      prompt = "Ersetze nur den Boden in diesem Raum mit neuem Bodenbelag. Alles andere bleibt gleich.";
+      prompt = `Lege in diesen Raum einen ${parts} Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     }
 
     const result = await (openai.images.edit as any)({
