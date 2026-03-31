@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIClient } from "@/lib/openai";
+import sharp from "sharp";
 
 export const maxDuration = 30;
 
-interface Corner {
-  x: number;
-  y: number;
-}
-
-const FALLBACK: Corner[] = [
-  { x: 10, y: 50 },
-  { x: 90, y: 50 },
-  { x: 100, y: 100 },
-  { x: 0, y: 100 },
-];
-
-function isDemoMode(): boolean {
-  const key = process.env.OPENAI_API_KEY;
-  return !key || key === "sk-dein-key-hier" || key.trim() === "";
-}
+// ADE20K class indices for floor-like surfaces
+const FLOOR_LABELS = new Set(["floor", "flooring", "rug", "carpet", "path", "road"]);
 
 export async function POST(request: NextRequest) {
   let body: { roomImage?: string };
@@ -33,76 +19,107 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "roomImage ist erforderlich" }, { status: 400 });
   }
 
-  if (isDemoMode()) {
-    console.log("[detect-floor] Demo mode — using fallback");
-    return NextResponse.json({ corners: FALLBACK, demo: true });
-  }
-
   try {
-    const openai = getOpenAIClient();
+    // Strip data URL prefix and convert to buffer
+    const base64Data = roomImage.includes(",")
+      ? roomImage.split(",")[1]
+      : roomImage;
+    const imageBuffer = Buffer.from(base64Data, "base64");
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Look at this interior room photo. I need you to identify ONLY the floor - the flat horizontal ground surface that people walk on. Ignore walls, furniture, ceiling, and all objects.
+    // Resize to max 512px for the model (faster, less memory)
+    const resized = await sharp(imageBuffer)
+      .resize(512, 512, { fit: "inside" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
 
-Return ONLY raw JSON (no markdown, no backticks, no explanation):
-{"corners":[{"x":number,"y":number},{"x":number,"y":number},{"x":number,"y":number},{"x":number,"y":number}]}
+    // Call Hugging Face Inference API
+    console.log("[detect-floor] Calling SegFormer model...");
+    const hfResponse = await fetch(
+      "https://api-inference.huggingface.co/models/nvidia/segformer-b2-finetuned-ade-20k-512-512",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: new Uint8Array(resized),
+      }
+    );
 
-The 4 corners define the visible floor quadrilateral as PERCENTAGES (0-100) of image width (x) and height (y).
-x=0 is left edge, x=100 is right edge. y=0 is top edge, y=100 is bottom edge.
+    if (!hfResponse.ok) {
+      const errText = await hfResponse.text();
+      console.error("[detect-floor] HF API error:", hfResponse.status, errText);
 
-Order: top-left of floor, top-right of floor, bottom-right of floor, bottom-left of floor.
-The top corners are where the floor meets the back wall.
-The bottom corners are the closest floor edges to the camera.`,
-            },
-            {
-              type: "image_url",
-              image_url: { url: roomImage, detail: "high" },
-            },
-          ],
-        },
-      ],
-      max_tokens: 300,
-      temperature: 0.1,
-    });
-
-    const content = response.choices[0]?.message?.content || "";
-    console.log("[detect-floor] GPT-4o raw:", content);
-
-    const jsonMatch = content.match(/\{[\s\S]*"corners"[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("[detect-floor] No JSON found");
-      return NextResponse.json({ corners: FALLBACK, fallback: true });
+      // If model is loading, return fallback
+      if (hfResponse.status === 503) {
+        console.log("[detect-floor] Model loading, using fallback");
+        return NextResponse.json({ mask: null, fallback: true, message: "Modell wird geladen" });
+      }
+      return NextResponse.json({ mask: null, fallback: true });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    const corners: Corner[] = parsed.corners;
+    // The API returns an array of { label, mask, score }
+    const segments: { label: string; mask: string; score: number }[] =
+      await hfResponse.json();
 
-    if (
-      !Array.isArray(corners) ||
-      corners.length !== 4 ||
-      !corners.every(
-        (c) =>
-          typeof c.x === "number" &&
-          typeof c.y === "number" &&
-          c.x >= 0 && c.x <= 100 &&
-          c.y >= 0 && c.y <= 100
-      )
-    ) {
-      console.error("[detect-floor] Invalid corners:", corners);
-      return NextResponse.json({ corners: FALLBACK, fallback: true });
+    console.log("[detect-floor] Got", segments.length, "segments:",
+      segments.map((s) => `${s.label}(${s.score.toFixed(2)})`).join(", ")
+    );
+
+    // Find floor segments
+    const floorSegments = segments.filter((s) => FLOOR_LABELS.has(s.label));
+
+    if (floorSegments.length === 0) {
+      console.log("[detect-floor] No floor segments found");
+      return NextResponse.json({ mask: null, fallback: true });
     }
 
-    console.log("[detect-floor] Corners:", JSON.stringify(corners));
-    return NextResponse.json({ corners });
+    // Combine all floor masks into one
+    // Each mask is a base64-encoded PNG where white = that class
+    const originalMeta = await sharp(imageBuffer).metadata();
+    const origW = originalMeta.width || 512;
+    const origH = originalMeta.height || 512;
+
+    // Combine floor masks by adding them together
+    // Start with a black base
+    const blackBase = await sharp({
+      create: { width: origW, height: origH, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    }).png().toBuffer();
+
+    const composites = [];
+    for (const seg of floorSegments) {
+      const maskBuf = Buffer.from(seg.mask, "base64");
+      const resizedMask = await sharp(maskBuf)
+        .resize(origW, origH, { fit: "fill" })
+        .toBuffer();
+      composites.push({ input: resizedMask, blend: "add" as const });
+    }
+
+    const combinedMask = await sharp(blackBase)
+      .composite(composites)
+      .png()
+      .toBuffer();
+
+    // Threshold: convert to grayscale, any pixel > 128 → white, else black
+    const rawMask = await sharp(combinedMask).greyscale().raw().toBuffer();
+    // rawMask has 1 byte per pixel after greyscale
+    const cleanPixels = Buffer.alloc(origW * origH * 3);
+    for (let i = 0; i < rawMask.length; i++) {
+      const val = rawMask[i] > 128 ? 255 : 0;
+      cleanPixels[i * 3] = val;
+      cleanPixels[i * 3 + 1] = val;
+      cleanPixels[i * 3 + 2] = val;
+    }
+
+    const finalMask = await sharp(cleanPixels, {
+      raw: { width: origW, height: origH, channels: 3 },
+    })
+      .png()
+      .toBuffer();
+
+    const maskBase64 = `data:image/png;base64,${finalMask.toString("base64")}`;
+
+    console.log("[detect-floor] Floor mask created:", origW, "x", origH);
+    return NextResponse.json({ mask: maskBase64 });
   } catch (err) {
     console.error("[detect-floor] Error:", err);
-    return NextResponse.json({ corners: FALLBACK, fallback: true });
+    return NextResponse.json({ mask: null, fallback: true });
   }
 }
