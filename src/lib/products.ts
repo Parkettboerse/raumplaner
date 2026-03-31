@@ -8,119 +8,135 @@ function hasBlobToken(): boolean {
   return !!token && token !== "vercel_blob_token_hier" && token.trim() !== "";
 }
 
-// In-memory fallback for dev without Blob token
+// In-memory store for dev mode
 let memoryStore: FloorProduct[] | null = null;
 
-// Bundled seed data (imported at build time, works on Vercel)
-import seedData from "@/data/products.json";
-const SEED_DATA: FloorProduct[] = seedData as FloorProduct[];
+// Hardcoded fallback seed — the 4 test products
+const FALLBACK_SEED: FloorProduct[] = [
+  {
+    id: "parkett-eiche-rustikal",
+    name: "Eiche Rustikal",
+    category: "parkett",
+    detail: "Landhausdiele, gebürstet, naturgeölt, 14mm",
+    price: "ab 54,90 €/m²",
+    texture_url: "/textures/parkett-eiche-rustikal.png",
+    shop_url: "https://www.parkettboerse.net/shop/parkett-eiche-rustikal",
+  },
+  {
+    id: "parkett-nussbaum-elegance",
+    name: "Nussbaum Elegance",
+    category: "parkett",
+    detail: "2-Schicht-Diele, UV-geölt, 11mm",
+    price: "ab 89,00 €/m²",
+    texture_url: "/textures/parkett-nussbaum-elegance.png",
+    shop_url: "https://www.parkettboerse.net/shop/parkett-nussbaum-elegance",
+  },
+  {
+    id: "vinyl-eiche-grau",
+    name: "Vinyl Eiche Grau",
+    category: "vinyl",
+    detail: "Klick-Vinyl, 5mm, NK 33, Trittschall integriert",
+    price: "ab 34,90 €/m²",
+    texture_url: "/textures/vinyl-eiche-grau.png",
+    shop_url: "https://www.parkettboerse.net/shop/vinyl-eiche-grau",
+  },
+  {
+    id: "vinyl-steinoptik-anthrazit",
+    name: "Vinyl Steinoptik Anthrazit",
+    category: "vinyl",
+    detail: "Klick-Vinyl, Fliesenformat, 5mm, NK 33, wasserbeständig",
+    price: "ab 38,50 €/m²",
+    texture_url: "/textures/vinyl-steinoptik-anthrazit.png",
+    shop_url: "https://www.parkettboerse.net/shop/vinyl-steinoptik-anthrazit",
+  },
+];
 
 export async function getProducts(): Promise<FloorProduct[]> {
-  console.log("[products] getProducts called, hasBlobToken:", hasBlobToken());
+  const useBlob = hasBlobToken();
+  console.log("[products] getProducts, blob:", useBlob);
 
-  if (hasBlobToken()) {
+  if (useBlob) {
     try {
       const { blobs } = await list({ prefix: "data/" });
-      console.log("[products] Blobs found:", blobs.map((b) => b.pathname));
       const blob = blobs.find((b) => b.pathname === BLOB_PATH);
 
       if (blob) {
         const res = await fetch(blob.url, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          console.log("[products] Loaded", data.length, "products from Blob");
+          console.log("[products] Loaded", data.length, "from blob");
           return data;
         }
-        console.error("[products] Blob fetch failed:", res.status);
+        console.error("[products] Blob fetch status:", res.status);
+      } else {
+        console.log("[products] No blob yet, seeding...");
+        await saveProducts(FALLBACK_SEED);
+        return FALLBACK_SEED;
       }
-
-      // No blob yet — seed from bundled data
-      console.log("[products] No blob found, seeding with", SEED_DATA.length, "products");
-      if (SEED_DATA.length > 0) {
-        await saveProducts(SEED_DATA);
-      }
-      return SEED_DATA;
     } catch (err: any) {
-      console.error("[products] Blob read error:", err?.message, err?.stack);
-      return SEED_DATA;
+      console.error("[products] Blob error:", err?.message);
     }
+    return FALLBACK_SEED;
   }
 
-  // Dev mode: in-memory store
-  if (memoryStore === null) {
-    memoryStore = [...SEED_DATA];
-  }
+  // Dev: in-memory
+  if (!memoryStore) memoryStore = [...FALLBACK_SEED];
   return memoryStore;
 }
 
 export async function saveProducts(products: FloorProduct[]): Promise<void> {
-  console.log("[products] saveProducts called,", products.length, "products, hasBlobToken:", hasBlobToken());
+  const useBlob = hasBlobToken();
+  console.log("[products] saveProducts,", products.length, "items, blob:", useBlob);
 
-  if (hasBlobToken()) {
-    try {
-      const result = await put(BLOB_PATH, JSON.stringify(products, null, 2), {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/json",
-      });
-      console.log("[products] Saved to Blob:", result.url);
-      return;
-    } catch (err: any) {
-      console.error("[products] Blob write FAILED:", err?.message, err?.stack);
-      throw err; // Re-throw so caller knows it failed
-    }
+  if (useBlob) {
+    const result = await put(BLOB_PATH, JSON.stringify(products, null, 2), {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: "application/json",
+    });
+    console.log("[products] Saved to:", result.url);
+    return;
   }
 
-  // Dev mode: save to memory
   memoryStore = products;
 }
 
-export async function getProductById(
-  id: string
-): Promise<FloorProduct | undefined> {
-  const products = await getProducts();
-  return products.find((p) => p.id === id);
+export async function getProductById(id: string): Promise<FloorProduct | undefined> {
+  return (await getProducts()).find((p) => p.id === id);
 }
 
-export async function addProduct(
-  product: FloorProduct
-): Promise<FloorProduct> {
-  const products = await getProducts();
-  products.push(product);
-  await saveProducts(products);
+export async function addProduct(product: FloorProduct): Promise<FloorProduct> {
+  const all = await getProducts();
+  all.push(product);
+  await saveProducts(all);
   return product;
 }
 
-export async function upsertProduct(
-  product: FloorProduct
-): Promise<FloorProduct> {
-  const products = await getProducts();
-  const index = products.findIndex((p) => p.id === product.id);
-  if (index !== -1) {
-    products[index] = { ...products[index], ...product };
+export async function upsertProduct(product: FloorProduct): Promise<FloorProduct> {
+  const all = await getProducts();
+  const idx = all.findIndex((p) => p.id === product.id);
+  if (idx !== -1) {
+    all[idx] = { ...all[idx], ...product };
   } else {
-    products.push(product);
+    all.push(product);
   }
-  await saveProducts(products);
-  return index !== -1 ? products[index] : product;
+  await saveProducts(all);
+  return idx !== -1 ? all[idx] : product;
 }
 
-export async function updateProduct(
-  id: string,
-  data: Partial<FloorProduct>
-): Promise<FloorProduct | null> {
-  const products = await getProducts();
-  const index = products.findIndex((p) => p.id === id);
-  if (index === -1) return null;
-  products[index] = { ...products[index], ...data, id };
-  await saveProducts(products);
-  return products[index];
+export async function updateProduct(id: string, data: Partial<FloorProduct>): Promise<FloorProduct | null> {
+  const all = await getProducts();
+  const idx = all.findIndex((p) => p.id === id);
+  if (idx === -1) return null;
+  all[idx] = { ...all[idx], ...data, id };
+  await saveProducts(all);
+  return all[idx];
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  const products = await getProducts();
-  const filtered = products.filter((p) => p.id !== id);
-  if (filtered.length === products.length) return false;
+  const all = await getProducts();
+  const filtered = all.filter((p) => p.id !== id);
+  if (filtered.length === all.length) return false;
   await saveProducts(filtered);
   return true;
 }
