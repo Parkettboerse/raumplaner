@@ -69,6 +69,9 @@ export async function POST(request: NextRequest) {
       product.dimensions,
       product.verlegemuster ? `Verlegemuster: ${product.verlegemuster}` : null,
       product.oberflaeche ? `Oberfläche: ${product.oberflaeche}` : null,
+      product.category?.toLowerCase() === "vinyl" || product.category?.toLowerCase() === "laminat" || product.category?.toLowerCase() === "kork"
+        ? "fugenloses Design, KEINE sichtbaren Fugen oder Fliesenkanten"
+        : null,
     ].filter(Boolean).join(", ");
 
     let prompt: string;
