@@ -43,50 +43,11 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
     setProcessing(true);
 
-    let blob: Blob = file;
-
-    // HEIC conversion
     const isHeic =
       file.type === "image/heic" ||
       file.type === "image/heif" ||
       file.name.toLowerCase().endsWith(".heic") ||
       file.name.toLowerCase().endsWith(".heif");
-
-    if (isHeic) {
-      try {
-        // heic2any is browser-only (needs window/Worker), so dynamic import is required
-        const heic2anyModule = await import(/* webpackChunkName: "heic2any" */ "heic2any");
-        // Handle both ESM default export and CJS module.exports
-        const convertHeic: (opts: {
-          blob: Blob;
-          toType: string;
-          quality: number;
-        }) => Promise<Blob | Blob[]> =
-          typeof heic2anyModule.default === "function"
-            ? heic2anyModule.default
-            : typeof heic2anyModule === "function"
-              ? (heic2anyModule as any)
-              : (heic2anyModule as any).heic2any;
-
-        if (typeof convertHeic !== "function") {
-          throw new Error("heic2any Modul konnte nicht geladen werden");
-        }
-
-        const converted = await convertHeic({
-          blob: file,
-          toType: "image/jpeg",
-          quality: 0.8,
-        });
-        blob = Array.isArray(converted) ? converted[0] : converted;
-      } catch (err) {
-        console.error("HEIC conversion error:", err);
-        setError(
-          "HEIC-Konvertierung fehlgeschlagen. Bitte konvertieren Sie das Bild zuerst zu JPG oder PNG (z.B. über Dateien-App oder einen Online-Konverter)."
-        );
-        setProcessing(false);
-        return;
-      }
-    }
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!isHeic && !allowedTypes.includes(file.type)) {
@@ -95,17 +56,40 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       return;
     }
 
+    // HEIC: convert server-side via sharp
+    if (isHeic) {
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/convert-heic", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "HEIC-Konvertierung fehlgeschlagen.");
+          setProcessing(false);
+          return;
+        }
+        setPreview(data.image);
+        setProcessing(false);
+        return;
+      } catch (err) {
+        console.error("HEIC conversion error:", err);
+        setError("HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG.");
+        setProcessing(false);
+        return;
+      }
+    }
+
+    // JPG/PNG/WebP: read directly
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = reader.result as string;
-      setPreview(base64);
+      setPreview(reader.result as string);
       setProcessing(false);
     };
     reader.onerror = () => {
       setError("Fehler beim Lesen der Datei.");
       setProcessing(false);
     };
-    reader.readAsDataURL(blob);
+    reader.readAsDataURL(file);
   }
 
   function handleDragOver(e: DragEvent) {
