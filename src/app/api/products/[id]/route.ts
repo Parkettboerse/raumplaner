@@ -1,19 +1,41 @@
+import { put, list } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
-import { getProductById, updateProduct, deleteProduct } from "@/lib/products";
+
+const PRODUCTS_KEY = "products.json";
+
+async function getProducts() {
+  try {
+    const { blobs } = await list({ prefix: PRODUCTS_KEY });
+    if (blobs.length === 0) return [];
+    const response = await fetch(blobs[0].url);
+    return await response.json();
+  } catch {
+    return [];
+  }
+}
+
+async function saveProducts(products: any[]) {
+  await put(PRODUCTS_KEY, JSON.stringify(products), {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const product = await getProductById(params.id);
+    const products = await getProducts();
+    const product = products.find((p: any) => p.id === params.id);
     if (!product) {
       return NextResponse.json({ error: "Produkt nicht gefunden" }, { status: 404 });
     }
     return NextResponse.json(product);
-  } catch (err) {
-    console.error("[api/products/id GET]", err);
-    return NextResponse.json({ error: "Fehler beim Laden" }, { status: 500 });
+  } catch (error: any) {
+    console.error("GET product error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -23,14 +45,17 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const updated = await updateProduct(params.id, body);
-    if (!updated) {
+    const products = await getProducts();
+    const index = products.findIndex((p: any) => p.id === params.id);
+    if (index === -1) {
       return NextResponse.json({ error: "Produkt nicht gefunden" }, { status: 404 });
     }
-    return NextResponse.json(updated);
-  } catch (err) {
-    console.error("[api/products/id PUT]", err);
-    return NextResponse.json({ error: "Produkt konnte nicht aktualisiert werden" }, { status: 500 });
+    products[index] = { ...products[index], ...body, id: params.id };
+    await saveProducts(products);
+    return NextResponse.json(products[index]);
+  } catch (error: any) {
+    console.error("PUT product error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -39,13 +64,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const deleted = await deleteProduct(params.id);
-    if (!deleted) {
+    const products = await getProducts();
+    const filtered = products.filter((p: any) => p.id !== params.id);
+    if (filtered.length === products.length) {
       return NextResponse.json({ error: "Produkt nicht gefunden" }, { status: 404 });
     }
+    await saveProducts(filtered);
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("[api/products/id DELETE]", err);
-    return NextResponse.json({ error: "Produkt konnte nicht gelöscht werden" }, { status: 500 });
+  } catch (error: any) {
+    console.error("DELETE product error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
