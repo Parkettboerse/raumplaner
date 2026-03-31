@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FloorProduct } from "@/types";
 import CategoryTabs from "./CategoryTabs";
 import FloorCard from "./FloorCard";
@@ -8,29 +8,21 @@ import FloorCard from "./FloorCard";
 type Category = FloorProduct["category"] | "alle";
 
 interface FloorCatalogProps {
+  products: FloorProduct[];
+  loading: boolean;
   selectedFloor: FloorProduct | null;
   onFloorSelect: (product: FloorProduct) => void;
   onApply: () => void;
 }
 
 export default function FloorCatalog({
+  products,
+  loading,
   selectedFloor,
   onFloorSelect,
   onApply,
 }: FloorCatalogProps) {
-  const [products, setProducts] = useState<FloorProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category>("alle");
-
-  useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   const filtered =
     activeCategory === "alle"

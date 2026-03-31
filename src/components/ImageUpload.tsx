@@ -26,8 +26,8 @@ const FEATURES = [
   },
 ];
 
-const MAX_WIDTH = 1920;
-const JPEG_QUALITY = 0.7;
+const MAX_WIDTH = 1024;
+const JPEG_QUALITY = 0.5;
 
 function compressImage(src: string): Promise<string> {
   return new Promise((resolve, reject) => {

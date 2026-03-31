@@ -1,6 +1,7 @@
 "use client";
 
 import { FloorProduct } from "@/types";
+import LazyImage from "./LazyImage";
 
 interface FloorCardProps {
   product: FloorProduct;
@@ -45,10 +46,10 @@ export default function FloorCard({
       {/* Texture image */}
       <div className="relative h-20 w-full overflow-hidden">
         {product.texture_url ? (
-          <img
+          <LazyImage
             src={product.texture_url}
             alt={`Textur von ${product.name}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full"
           />
         ) : (
           <div

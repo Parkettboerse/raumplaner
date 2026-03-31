@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FloorProduct } from "@/types";
 import StepIndicator from "./StepIndicator";
 import ImageUpload from "./ImageUpload";
@@ -23,8 +23,21 @@ export default function RaumplanerApp() {
   const [demoWarning, setDemoWarning] = useState<string | null>(null);
   const [floorRegion, setFloorRegion] = useState<FloorPoint[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [products, setProducts] = useState<FloorProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Fetch products once on mount
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(data);
+        setProductsLoading(false);
+      })
+      .catch(() => setProductsLoading(false));
+  }, []);
 
   async function detectFloor(image: string) {
     setAnalyzing(true);
@@ -419,6 +432,8 @@ export default function RaumplanerApp() {
 
               {currentStep === 2 && (
                 <FloorCatalog
+                  products={products}
+                  loading={productsLoading}
                   selectedFloor={selectedFloor}
                   onFloorSelect={setSelectedFloor}
                   onApply={handleApplyFloor}
@@ -428,6 +443,8 @@ export default function RaumplanerApp() {
               {currentStep === 3 && (
                 <div className="pointer-events-none opacity-50">
                   <FloorCatalog
+                    products={products}
+                    loading={productsLoading}
                     selectedFloor={selectedFloor}
                     onFloorSelect={() => {}}
                     onApply={() => {}}
@@ -437,6 +454,8 @@ export default function RaumplanerApp() {
 
               {currentStep === 4 && (
                 <FloorCatalog
+                  products={products}
+                  loading={productsLoading}
                   selectedFloor={selectedFloor}
                   onFloorSelect={(floor) => {
                     setSelectedFloor(floor);
