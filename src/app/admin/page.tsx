@@ -20,6 +20,44 @@ const emptyForm = {
   shop_url: "",
 };
 
+function compressImageFile(file: File, maxWidth = 512, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > maxWidth) {
+        h = Math.round(h * (maxWidth / w));
+        w = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas error")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
+    img.src = url;
+  });
+}
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000): Promise<Response> {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs)
+    ),
+  ]);
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -154,16 +192,32 @@ export default function AdminPage() {
   // ────────────────────────────────────────
   async function handleTextureUpload(productId: string, file: File) {
     setUploadingTextureId(productId);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("productId", productId);
-    const res = await fetch("/api/upload-texture", { method: "POST", body: fd });
-    if (res.ok) {
-      flash("Texturbild hochgeladen");
-      fetchProducts();
-    } else {
-      const err = await res.json();
-      flash(err.error || "Upload fehlgeschlagen", "err");
+    try {
+      console.log("[admin] Compressing texture...", file.name, file.size);
+      const compressed = await compressImageFile(file);
+      console.log("[admin] Compressed to", compressed.size, "bytes");
+
+      const fd = new FormData();
+      fd.append("file", new File([compressed], `${productId}.jpg`, { type: "image/jpeg" }));
+      fd.append("productId", productId);
+
+      const res = await fetchWithTimeout("/api/upload-texture", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        flash("Texturbild hochgeladen");
+        fetchProducts();
+      } else {
+        console.error("[admin] Upload error:", data);
+        flash(data.error || "Upload fehlgeschlagen", "err");
+      }
+    } catch (err: any) {
+      console.error("[admin] Texture upload failed:", err);
+      flash(
+        err.message === "TIMEOUT"
+          ? "Upload fehlgeschlagen — Timeout nach 30 Sekunden. Bitte erneut versuchen."
+          : "Upload fehlgeschlagen. Bitte erneut versuchen.",
+        "err"
+      );
     }
     setUploadingTextureId(null);
   }
@@ -177,19 +231,35 @@ export default function AdminPage() {
 
     let textureUrl = "";
     if (textureFile) {
-      const fd = new FormData();
-      fd.append("file", textureFile);
-      const tempId = editingId || `${form.category}-${slugify(form.name)}`;
-      fd.append("productId", tempId);
-      const uploadRes = await fetch("/api/upload-texture", { method: "POST", body: fd });
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json();
-        flash(err.error || "Upload fehlgeschlagen", "err");
+      try {
+        console.log("[admin] Compressing form texture...");
+        const compressed = await compressImageFile(textureFile);
+        const tempId = editingId || `${form.category}-${slugify(form.name)}`;
+
+        const fd = new FormData();
+        fd.append("file", new File([compressed], `${tempId}.jpg`, { type: "image/jpeg" }));
+        fd.append("productId", tempId);
+
+        const uploadRes = await fetchWithTimeout("/api/upload-texture", { method: "POST", body: fd });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          console.error("[admin] Texture upload error:", uploadData);
+          flash(uploadData.error || "Bild-Upload fehlgeschlagen", "err");
+          setSubmitting(false);
+          return;
+        }
+        textureUrl = uploadData.url;
+      } catch (err: any) {
+        console.error("[admin] Texture upload failed:", err);
+        flash(
+          err.message === "TIMEOUT"
+            ? "Bild-Upload Timeout. Bitte erneut versuchen."
+            : "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
+          "err"
+        );
         setSubmitting(false);
         return;
       }
-      const { url } = await uploadRes.json();
-      textureUrl = url;
     }
 
     if (editingId) {
@@ -203,7 +273,7 @@ export default function AdminPage() {
       if (textureUrl) body.texture_url = textureUrl;
 
       try {
-        const res = await fetch(`/api/products/${editingId}`, {
+        const res = await fetchWithTimeout(`/api/products/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -216,8 +286,9 @@ export default function AdminPage() {
         } else {
           flash(data.error || "Fehler beim Aktualisieren", "err");
         }
-      } catch {
-        flash("Netzwerkfehler beim Speichern", "err");
+      } catch (err: any) {
+        console.error("[admin] Save error:", err);
+        flash(err?.message === "TIMEOUT" ? "Speichern fehlgeschlagen — Timeout" : "Netzwerkfehler beim Speichern", "err");
       }
     } else {
       const id = `${form.category}-${slugify(form.name)}`;
@@ -232,7 +303,7 @@ export default function AdminPage() {
       };
 
       try {
-        const res = await fetch("/api/products", {
+        const res = await fetchWithTimeout("/api/products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(product),
@@ -245,8 +316,9 @@ export default function AdminPage() {
         } else {
           flash(data.error || "Fehler beim Hinzufügen", "err");
         }
-      } catch {
-        flash("Netzwerkfehler beim Speichern", "err");
+      } catch (err: any) {
+        console.error("[admin] Create error:", err);
+        flash(err?.message === "TIMEOUT" ? "Speichern fehlgeschlagen — Timeout" : "Netzwerkfehler beim Speichern", "err");
       }
     }
     setSubmitting(false);
@@ -255,7 +327,7 @@ export default function AdminPage() {
   async function handleDelete(id: string) {
     if (!confirm("Produkt wirklich löschen?")) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const res = await fetchWithTimeout(`/api/products/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
         flash("Produkt gelöscht");
@@ -263,8 +335,9 @@ export default function AdminPage() {
       } else {
         flash(data.error || "Fehler beim Löschen", "err");
       }
-    } catch {
-      flash("Netzwerkfehler beim Löschen", "err");
+    } catch (err: any) {
+      console.error("[admin] Delete error:", err);
+      flash(err?.message === "TIMEOUT" ? "Löschen fehlgeschlagen — Timeout" : "Netzwerkfehler beim Löschen", "err");
     }
   }
 
