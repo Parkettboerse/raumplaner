@@ -123,23 +123,23 @@ export default function BeforeAfterSlider({
       className="relative h-[250px] select-none overflow-hidden rounded-2xl shadow-lg sm:h-[380px]"
       style={{ cursor: "col-resize" }}
     >
-      {/* Before image (bottom layer) */}
+      {/* After image (bottom layer — full, visible on the right) */}
       <img
-        src={beforeImage}
-        alt="Vorher"
+        src={afterImage}
+        alt="Nachher"
         draggable={false}
         className="absolute inset-0 z-[1] h-full w-full object-cover"
       />
 
-      {/* After image (top layer, clipped) */}
+      {/* Before image (top layer, clipped from left to slider position) */}
       <div
         ref={afterRef}
         className="absolute inset-0 z-[2]"
         style={{ clipPath: "inset(0 50% 0 0)" }}
       >
         <img
-          src={afterImage}
-          alt="Nachher"
+          src={beforeImage}
+          alt="Vorher"
           draggable={false}
           className="h-full w-full object-cover"
         />

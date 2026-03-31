@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOpenAIClient } from "@/lib/openai";
 import { toFile } from "openai";
 import { getProductById } from "@/lib/products";
-import { createFloorMask } from "@/lib/createMask";
+import { createFloorMask, createCompositeMask } from "@/lib/createMask";
 import sharp from "sharp";
 
 export const maxDuration = 60;
+
+const SIZE = 1024;
 
 interface FloorPoint {
   x: number;
@@ -17,13 +19,38 @@ function isDemoMode(): boolean {
   return !key || key === "sk-dein-key-hier" || key.trim() === "";
 }
 
-/** Fallback mask: bottom ~50% of image */
 const FALLBACK_POLYGON: FloorPoint[] = [
   { x: 0, y: 50 },
   { x: 100, y: 45 },
   { x: 100, y: 100 },
   { x: 0, y: 100 },
 ];
+
+/**
+ * Composite: take floor area from generated image and place it
+ * onto the original image. Everything outside the floor polygon
+ * stays pixel-perfect from the original.
+ */
+async function compositeFloor(
+  originalPng: Buffer,
+  generatedPng: Buffer,
+  compositeMask: Buffer
+): Promise<Buffer> {
+  // Use the mask as alpha channel on the generated image:
+  // where mask is white (floor) → show generated pixels
+  // where mask is black (non-floor) → transparent
+  const maskedFloor = await sharp(generatedPng)
+    .ensureAlpha()
+    .joinChannel(compositeMask)
+    .png()
+    .toBuffer();
+
+  // Composite the masked floor onto the original
+  return sharp(originalPng)
+    .composite([{ input: maskedFloor, blend: "over" }])
+    .png()
+    .toBuffer();
+}
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -72,31 +99,31 @@ export async function POST(request: NextRequest) {
 
   const imageBuffer = Buffer.from(base64Data, "base64");
 
-  // Resize to 1024x1024 PNG for the API
-  const resizedPng = await sharp(imageBuffer)
-    .resize(1024, 1024, { fit: "cover" })
+  // Resize original to 1024x1024 PNG
+  const originalPng = await sharp(imageBuffer)
+    .resize(SIZE, SIZE, { fit: "cover" })
     .png()
     .toBuffer();
 
-  // Use detected polygon or fallback
-  const polygon = floorRegion && floorRegion.length >= 3
-    ? floorRegion
-    : FALLBACK_POLYGON;
+  const polygon =
+    floorRegion && floorRegion.length >= 3 ? floorRegion : FALLBACK_POLYGON;
 
-  // Create mask from polygon
-  const maskPng = await createFloorMask(polygon, 1024, 1024);
+  // Create both masks
+  const [editMask, compositeMask] = await Promise.all([
+    createFloorMask(polygon, SIZE, SIZE),
+    createCompositeMask(polygon, SIZE, SIZE),
+  ]);
 
   const editPrompt =
-    `Photorealistic ${product.name} floor (${product.detail}). ` +
-    `Natural ${product.category} flooring with correct perspective and lighting matching the room. ` +
-    `The floor planks/tiles should follow the room's perspective lines naturally.`;
+    `Replace the floor area with photorealistic ${product.name} (${product.detail}) flooring. ` +
+    `Match the perspective and lighting of the original room photo. ` +
+    `Natural ${product.category} flooring with correct perspective lines.`;
 
-  // ── Try Edit API with mask (inpainting) ──
   try {
-    const imageFile = await toFile(resizedPng, "room.png", {
+    const imageFile = await toFile(originalPng, "room.png", {
       type: "image/png",
     });
-    const maskFile = await toFile(maskPng, "mask.png", {
+    const maskFile = await toFile(editMask, "mask.png", {
       type: "image/png",
     });
 
@@ -119,21 +146,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      resultImage: `data:image/png;base64,${imageData.b64_json}`,
-    });
+    // ── Composite: take ONLY the floor from AI output, keep original everywhere else ──
+    const generatedPng = Buffer.from(imageData.b64_json, "base64");
+
+    const finalImage = await compositeFloor(
+      originalPng,
+      generatedPng,
+      compositeMask
+    );
+
+    const resultBase64 = `data:image/png;base64,${finalImage.toString("base64")}`;
+
+    return NextResponse.json({ resultImage: resultBase64 });
   } catch (editErr: any) {
     console.error("OpenAI Edit API Error:", editErr);
 
-    // ── Fallback: Edit without mask ──
+    // ── Fallback: Edit without mask, no compositing ──
     try {
       const fallbackPrompt =
         `This is a photo of a room. Replace ONLY the floor/ground surface with ${product.name} (${product.detail}). ` +
         `Do NOT change any furniture, walls, doors, windows, or decorations. ` +
-        `ONLY the floor surface material should change. ` +
-        `The new floor should be: ${product.detail}`;
+        `ONLY the floor surface material should change.`;
 
-      const imageFile = await toFile(resizedPng, "room.png", {
+      const imageFile = await toFile(originalPng, "room.png", {
         type: "image/png",
       });
 
@@ -158,7 +193,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         resultImage: `data:image/png;base64,${imageData.b64_json}`,
         beta: true,
-        warning: "Beta-Qualität: Maske konnte nicht angewendet werden",
+        warning: "Beta-Qualität: Compositing konnte nicht angewendet werden",
       });
     } catch (fallbackErr: any) {
       console.error("OpenAI Fallback Error:", fallbackErr);
