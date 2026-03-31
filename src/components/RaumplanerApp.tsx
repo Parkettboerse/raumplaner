@@ -21,7 +21,7 @@ export default function RaumplanerApp() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [demoWarning, setDemoWarning] = useState<string | null>(null);
-  const [floorRegion, setFloorRegion] = useState<FloorPoint[] | null>(null);
+  const [floorPoints, setFloorPoints] = useState<FloorPoint[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [products, setProducts] = useState<FloorProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -48,12 +48,11 @@ export default function RaumplanerApp() {
         body: JSON.stringify({ roomImage: image }),
       });
       const data = await res.json();
-      if (data.floorRegion) {
-        setFloorRegion(data.floorRegion);
+      if (data.points) {
+        setFloorPoints(data.points);
       }
     } catch (err) {
       console.error("Floor detection failed:", err);
-      // floorRegion stays null → generate-preview will use fallback
     }
     setAnalyzing(false);
   }
@@ -69,7 +68,7 @@ export default function RaumplanerApp() {
     setUploadedImage(null);
     setSelectedFloor(null);
     setResultImage(null);
-    setFloorRegion(null);
+    setFloorPoints(null);
     setError(null);
     setDemoWarning(null);
     setAnalyzing(false);
@@ -97,7 +96,7 @@ export default function RaumplanerApp() {
         body: JSON.stringify({
           roomImage: uploadedImage,
           floorId: selectedFloor.id,
-          floorRegion: floorRegion || undefined,
+          floorPoints: floorPoints || undefined,
         }),
       });
 
@@ -108,10 +107,7 @@ export default function RaumplanerApp() {
         return;
       }
 
-      if (data.demo) {
-        setDemoWarning(data.warning);
-      }
-      if (data.beta) {
+      if (data.warning) {
         setDemoWarning(data.warning);
       }
 

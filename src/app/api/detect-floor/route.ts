@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAIClient } from "@/lib/openai";
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 interface FloorPoint {
   x: number;
   y: number;
 }
+
+const FALLBACK: FloorPoint[] = [
+  { x: 0, y: 55 },
+  { x: 100, y: 55 },
+  { x: 100, y: 100 },
+  { x: 0, y: 100 },
+];
 
 function isDemoMode(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -32,76 +39,53 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Demo mode: return a default polygon (bottom half)
   if (isDemoMode()) {
-    return NextResponse.json({
-      floorRegion: [
-        { x: 0, y: 55 },
-        { x: 100, y: 55 },
-        { x: 100, y: 100 },
-        { x: 0, y: 100 },
-      ],
-      demo: true,
-    });
+    return NextResponse.json({ points: FALLBACK, demo: true });
   }
 
   try {
     const openai = getOpenAIClient();
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Analyze this room photo. Identify the visible floor area precisely.
-
-Return ONLY a JSON object (no markdown, no explanation) with this exact format:
-{"floorRegion": [{"x": number, "y": number}, ...]}
-
-The points are percentages (0-100) of image width (x) and height (y).
-They form a polygon outlining ONLY the visible floor surface.
-Trace the exact edges where floor meets walls, furniture legs, door frames, and objects.
-Go clockwise. Use 6-12 points for accuracy.
-Only include the floor - not walls, furniture tops, or other surfaces.`,
+              text: `Analyze this room photo. Identify the visible floor area.
+Return ONLY a JSON object: {"points": [{"x": number, "y": number}]}
+where each point is a corner of the floor area as percentage (0-100) of image width (x) and height (y).
+Start top-left and go clockwise. Include 4-6 points that precisely outline the floor polygon.
+Trace along walls, furniture edges, and door frames.
+Return ONLY valid JSON, no markdown, no explanation.`,
             },
             {
               type: "image_url",
               image_url: {
                 url: roomImage,
-                detail: "high",
+                detail: "low",
               },
             },
           ],
         },
       ],
-      max_tokens: 500,
+      max_tokens: 300,
       temperature: 0.1,
     });
 
     const content = response.choices[0]?.message?.content || "";
 
-    // Extract JSON from response (may be wrapped in markdown code blocks)
-    const jsonMatch = content.match(/\{[\s\S]*"floorRegion"[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*"points"[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("Could not parse floor region from:", content);
-      return NextResponse.json({
-        floorRegion: [
-          { x: 0, y: 50 },
-          { x: 100, y: 45 },
-          { x: 100, y: 100 },
-          { x: 0, y: 100 },
-        ],
-        fallback: true,
-      });
+      console.error("Could not parse floor points from:", content);
+      return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const points: FloorPoint[] = parsed.floorRegion;
+    const points: FloorPoint[] = parsed.points;
 
-    // Validate points
     if (
       !Array.isArray(points) ||
       points.length < 3 ||
@@ -113,30 +97,12 @@ Only include the floor - not walls, furniture tops, or other surfaces.`,
           p.y >= 0 && p.y <= 100
       )
     ) {
-      return NextResponse.json({
-        floorRegion: [
-          { x: 0, y: 50 },
-          { x: 100, y: 45 },
-          { x: 100, y: 100 },
-          { x: 0, y: 100 },
-        ],
-        fallback: true,
-      });
+      return NextResponse.json({ points: FALLBACK, fallback: true });
     }
 
-    return NextResponse.json({ floorRegion: points });
-  } catch (err: any) {
+    return NextResponse.json({ points });
+  } catch (err) {
     console.error("Floor detection error:", err);
-
-    // Fallback: bottom half
-    return NextResponse.json({
-      floorRegion: [
-        { x: 0, y: 50 },
-        { x: 100, y: 45 },
-        { x: 100, y: 100 },
-        { x: 0, y: 100 },
-      ],
-      fallback: true,
-    });
+    return NextResponse.json({ points: FALLBACK, fallback: true });
   }
 }

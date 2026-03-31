@@ -1,62 +1,93 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIClient } from "@/lib/openai";
-import { toFile } from "openai";
 import { getProductById } from "@/lib/products";
-import { createFloorMask, createCompositeMask } from "@/lib/createMask";
+import { createFloorMask } from "@/lib/createMask";
 import sharp from "sharp";
 
-export const maxDuration = 60;
-
-const SIZE = 1024;
+export const maxDuration = 30;
 
 interface FloorPoint {
   x: number;
   y: number;
 }
 
-function isDemoMode(): boolean {
-  const key = process.env.OPENAI_API_KEY;
-  return !key || key === "sk-dein-key-hier" || key.trim() === "";
-}
-
 const FALLBACK_POLYGON: FloorPoint[] = [
-  { x: 0, y: 50 },
-  { x: 100, y: 45 },
+  { x: 0, y: 55 },
+  { x: 100, y: 55 },
   { x: 100, y: 100 },
   { x: 0, y: 100 },
 ];
 
 /**
- * Composite: take floor area from generated image and place it
- * onto the original image. Everything outside the floor polygon
- * stays pixel-perfect from the original.
+ * Tile a texture to fill the given dimensions.
+ * Returns a raw PNG buffer.
  */
-async function compositeFloor(
-  originalPng: Buffer,
-  generatedPng: Buffer,
-  compositeMask: Buffer
+async function tileTexture(
+  textureBuffer: Buffer,
+  width: number,
+  height: number
 ): Promise<Buffer> {
-  // Use the mask as alpha channel on the generated image:
-  // where mask is white (floor) → show generated pixels
-  // where mask is black (non-floor) → transparent
-  const maskedFloor = await sharp(generatedPng)
-    .ensureAlpha()
-    .joinChannel(compositeMask)
+  // Get texture dimensions
+  const meta = await sharp(textureBuffer).metadata();
+  const tw = meta.width || 256;
+  const th = meta.height || 256;
+
+  // Resize texture tile to a reasonable size (256px wide, keep aspect)
+  const tileSize = 256;
+  const tile = await sharp(textureBuffer)
+    .resize(tileSize, Math.round((th / tw) * tileSize))
     .png()
     .toBuffer();
 
-  // Composite the masked floor onto the original
-  return sharp(originalPng)
-    .composite([{ input: maskedFloor, blend: "over" }])
+  const tileMeta = await sharp(tile).metadata();
+  const tileW = tileMeta.width!;
+  const tileH = tileMeta.height!;
+
+  // Calculate how many tiles we need
+  const cols = Math.ceil(width / tileW);
+  const rows = Math.ceil(height / tileH);
+
+  // Create a composite array of tiles
+  const composites: { input: Buffer; left: number; top: number }[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      composites.push({
+        input: tile,
+        left: col * tileW,
+        top: row * tileH,
+      });
+    }
+  }
+
+  // Create base image and composite all tiles
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 3,
+      background: { r: 128, g: 128, b: 128 },
+    },
+  })
+    .composite(composites)
     .png()
     .toBuffer();
+}
+
+/**
+ * Fetch a texture image from a URL.
+ * Returns the raw buffer.
+ */
+async function fetchTexture(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch texture: ${res.status}`);
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 export async function POST(request: NextRequest) {
   let body: {
     roomImage?: string;
     floorId?: string;
-    floorRegion?: FloorPoint[];
+    floorPoints?: FloorPoint[];
   };
   try {
     body = await request.json();
@@ -67,7 +98,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { roomImage, floorId, floorRegion } = body;
+  const { roomImage, floorId, floorPoints } = body;
 
   if (!roomImage || !floorId) {
     return NextResponse.json(
@@ -84,131 +115,110 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── Demo mode ──
-  if (isDemoMode()) {
-    return NextResponse.json({
-      resultImage: roomImage,
-      demo: true,
-      warning: "Demo-Modus: Kein OpenAI API Key konfiguriert",
-    });
-  }
-
-  const base64Data = roomImage.includes(",")
-    ? roomImage.split(",")[1]
-    : roomImage;
-
-  const imageBuffer = Buffer.from(base64Data, "base64");
-
-  // Resize original to 1024x1024 PNG
-  const originalPng = await sharp(imageBuffer)
-    .resize(SIZE, SIZE, { fit: "cover" })
-    .png()
-    .toBuffer();
-
-  const polygon =
-    floorRegion && floorRegion.length >= 3 ? floorRegion : FALLBACK_POLYGON;
-
-  // Create both masks
-  const [editMask, compositeMask] = await Promise.all([
-    createFloorMask(polygon, SIZE, SIZE),
-    createCompositeMask(polygon, SIZE, SIZE),
-  ]);
-
-  const editPrompt =
-    `Replace the floor area with photorealistic ${product.name} (${product.detail}) flooring. ` +
-    `Match the perspective and lighting of the original room photo. ` +
-    `Natural ${product.category} flooring with correct perspective lines.`;
-
   try {
-    const imageFile = await toFile(originalPng, "room.png", {
-      type: "image/png",
-    });
-    const maskFile = await toFile(editMask, "mask.png", {
-      type: "image/png",
-    });
+    const base64Data = roomImage.includes(",")
+      ? roomImage.split(",")[1]
+      : roomImage;
 
-    const openai = getOpenAIClient();
-    const response = await openai.images.edit({
-      model: "gpt-image-1",
-      image: imageFile,
-      mask: maskFile,
-      prompt: editPrompt,
-      n: 1,
-      size: "1024x1024",
-    });
+    const imageBuffer = Buffer.from(base64Data, "base64");
 
-    const imageData = response.data?.[0];
+    // Get original image dimensions
+    const originalMeta = await sharp(imageBuffer).metadata();
+    const width = originalMeta.width || 1024;
+    const height = originalMeta.height || 1024;
 
-    if (!imageData?.b64_json) {
-      return NextResponse.json(
-        { error: "Keine Bilddaten in der API-Antwort erhalten" },
-        { status: 500 }
-      );
+    // Ensure original is PNG for compositing
+    const originalPng = await sharp(imageBuffer).png().toBuffer();
+
+    const polygon =
+      floorPoints && floorPoints.length >= 3 ? floorPoints : FALLBACK_POLYGON;
+
+    // Create floor mask (white = floor, black = keep)
+    const maskPng = await createFloorMask(polygon, width, height);
+
+    // Get texture: from product URL or generate a colored placeholder
+    let tiledTexture: Buffer;
+
+    if (product.texture_url) {
+      try {
+        const textureRaw = await fetchTexture(product.texture_url);
+        tiledTexture = await tileTexture(textureRaw, width, height);
+      } catch {
+        // Fallback: solid color based on category
+        const colors: Record<string, { r: number; g: number; b: number }> = {
+          parkett: { r: 180, g: 140, b: 90 },
+          vinyl: { r: 160, g: 155, b: 145 },
+          laminat: { r: 190, g: 165, b: 120 },
+          kork: { r: 195, g: 165, b: 110 },
+        };
+        const color = colors[product.category] || colors.parkett;
+        tiledTexture = await sharp({
+          create: { width, height, channels: 3, background: color },
+        })
+          .png()
+          .toBuffer();
+      }
+    } else {
+      // No texture URL: use a category-based solid color
+      const colors: Record<string, { r: number; g: number; b: number }> = {
+        parkett: { r: 180, g: 140, b: 90 },
+        vinyl: { r: 160, g: 155, b: 145 },
+        laminat: { r: 190, g: 165, b: 120 },
+        kork: { r: 195, g: 165, b: 110 },
+      };
+      const color = colors[product.category] || colors.parkett;
+      tiledTexture = await sharp({
+        create: { width, height, channels: 3, background: color },
+      })
+        .png()
+        .toBuffer();
     }
 
-    // ── Composite: take ONLY the floor from AI output, keep original everywhere else ──
-    const generatedPng = Buffer.from(imageData.b64_json, "base64");
+    // Apply mask to texture: texture pixels where mask is white, transparent elsewhere
+    // Step 1: Extract mask as raw grayscale for alpha channel
+    const maskRaw = await sharp(maskPng)
+      .resize(width, height)
+      .grayscale()
+      .raw()
+      .toBuffer();
 
-    const finalImage = await compositeFloor(
-      originalPng,
-      generatedPng,
-      compositeMask
-    );
+    // Step 2: Get tiled texture as raw RGBA
+    const textureRgba = await sharp(tiledTexture)
+      .resize(width, height)
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
 
-    const resultBase64 = `data:image/png;base64,${finalImage.toString("base64")}`;
+    // Step 3: Set alpha from mask, multiply by 0.85 for natural blending (shadows show through)
+    const maskedPixels = Buffer.alloc(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      maskedPixels[i * 4] = textureRgba[i * 4];         // R
+      maskedPixels[i * 4 + 1] = textureRgba[i * 4 + 1]; // G
+      maskedPixels[i * 4 + 2] = textureRgba[i * 4 + 2]; // B
+      // Alpha = mask value * 0.85 (let shadows through)
+      maskedPixels[i * 4 + 3] = Math.round(maskRaw[i] * 0.85);
+    }
+
+    const maskedTexturePng = await sharp(maskedPixels, {
+      raw: { width, height, channels: 4 },
+    })
+      .png()
+      .toBuffer();
+
+    // Step 4: Composite masked texture over original
+    const result = await sharp(originalPng)
+      .composite([{ input: maskedTexturePng, blend: "over" }])
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const resultBase64 = `data:image/jpeg;base64,${result.toString("base64")}`;
 
     return NextResponse.json({ resultImage: resultBase64 });
-  } catch (editErr: any) {
-    console.error("OpenAI Edit API Error:", editErr);
-
-    // ── Fallback: Edit without mask, no compositing ──
-    try {
-      const fallbackPrompt =
-        `This is a photo of a room. Replace ONLY the floor/ground surface with ${product.name} (${product.detail}). ` +
-        `Do NOT change any furniture, walls, doors, windows, or decorations. ` +
-        `ONLY the floor surface material should change.`;
-
-      const imageFile = await toFile(originalPng, "room.png", {
-        type: "image/png",
-      });
-
-      const openai = getOpenAIClient();
-      const response = await openai.images.edit({
-        model: "gpt-image-1",
-        image: imageFile,
-        prompt: fallbackPrompt,
-        n: 1,
-        size: "1024x1024",
-      });
-
-      const imageData = response.data?.[0];
-
-      if (!imageData?.b64_json) {
-        return NextResponse.json(
-          { error: "Keine Bilddaten in der API-Antwort erhalten" },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        resultImage: `data:image/png;base64,${imageData.b64_json}`,
-        beta: true,
-        warning: "Beta-Qualität: Compositing konnte nicht angewendet werden",
-      });
-    } catch (fallbackErr: any) {
-      console.error("OpenAI Fallback Error:", fallbackErr);
-
-      const message =
-        fallbackErr?.status === 429
-          ? "Zu viele Anfragen. Bitte versuchen Sie es in einigen Sekunden erneut."
-          : fallbackErr?.status === 401
-            ? "Ungültiger API-Key. Bitte prüfen Sie Ihre Konfiguration."
-            : "Fehler bei der Bildgenerierung. Bitte versuchen Sie es erneut.";
-
-      return NextResponse.json(
-        { error: message },
-        { status: fallbackErr?.status || 500 }
-      );
-    }
+  } catch (err) {
+    console.error("Generate preview error:", err);
+    return NextResponse.json(
+      { error: "Fehler bei der Vorschau-Generierung. Bitte versuchen Sie es erneut." },
+      { status: 500 }
+    );
   }
 }
