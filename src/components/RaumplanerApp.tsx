@@ -8,6 +8,22 @@ import FloorCatalog from "./FloorCatalog";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
 
+const S = {
+  page: { minHeight: "100vh", background: "#0D0D0D", fontFamily: "'Outfit', sans-serif", color: "#fff" } as const,
+  darkBar: { background: "#0D0D0D", padding: "20px 24px 16px", display: "flex", justifyContent: "center" } as const,
+  content: { background: "#FAFAF8", borderRadius: "24px 24px 0 0", minHeight: "60vh", padding: "24px" } as const,
+  contentFlush: { background: "#FAFAF8", borderRadius: "24px 24px 0 0", minHeight: "60vh" } as const,
+  loadWrap: { minHeight: 520, display: "flex", alignItems: "center", justifyContent: "center", background: "#0D0D0D" } as const,
+  loadBox: { background: "#161616", borderRadius: 24, padding: "48px 52px", textAlign: "center" as const, boxShadow: "0 24px 64px rgba(0,0,0,0.4)", animation: "fadeUp .4s ease", border: "1px solid #222" },
+  spinner: { width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 24px" },
+  loadBar: { marginTop: 24, height: 3, background: "#333", borderRadius: 2, overflow: "hidden" as const, maxWidth: 200, marginLeft: "auto", marginRight: "auto" },
+  loadFill: { height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 15s ease-out forwards" },
+  prodCard: { marginTop: 20, padding: 20, background: "#161616", border: "1px solid #2a2a2a", borderRadius: 20, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" as const },
+  btnGold: { padding: "14px 16px", borderRadius: 14, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all .25s" },
+  btnOutline: { padding: "14px 16px", borderRadius: 14, background: "transparent", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", border: "1.5px solid #333", transition: "all .25s" },
+  btnBlack: { padding: "14px 16px", borderRadius: 14, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all .25s" },
+};
+
 export default function RaumplanerApp() {
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -57,37 +73,31 @@ export default function RaumplanerApp() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--white)" }}>
+    <div style={S.page}>
 
       {/* ═══ STEP 1: Landing ═══ */}
       {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
 
       {/* ═══ STEP 2: Boden wählen ═══ */}
       {currentStep === 2 && uploadedImage && (
-        <div className="step2">
-          <StepIndicator currentStep={2} />
-
-          <div className="main-grid">
-            <div className="canvas-wrap">
-              <img src={uploadedImage} alt="Ihr Raum" />
-              <div className="canvas-info">
-                <h3>Wählen Sie einen Bodenbelag</h3>
-                <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", padding: "6px 16px", borderRadius: "100px", fontSize: "12px", fontWeight: 600, cursor: "pointer", backdropFilter: "blur(8px)" }}>
-                  Anderes Foto
-                </button>
+        <div style={{ animation: "fadeUp .4s ease" }}>
+          <div style={S.darkBar}><StepIndicator currentStep={2} /></div>
+          <div style={S.contentFlush}>
+            <div style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
+              <div className="main-grid">
+                <div style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", position: "relative" }}>
+                  <img src={uploadedImage} alt="Ihr Raum" style={{ width: "100%", display: "block" }} />
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "28px 24px 20px", background: "linear-gradient(transparent, rgba(10,10,10,0.65))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: "white" }}>Wählen Sie einen Bodenbelag</span>
+                    <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", padding: "6px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer", backdropFilter: "blur(8px)" }}>Anderes Foto</button>
+                  </div>
+                </div>
+                <div ref={sidebarRef}>
+                  <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
+                </div>
               </div>
             </div>
-
-            <div ref={sidebarRef}>
-              <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
-            </div>
           </div>
-
-          {/* Mobile: scroll to sidebar */}
-          <button onClick={() => sidebarRef.current?.scrollIntoView({ behavior: "smooth" })} className="go-btn" style={{ marginTop: "16px", display: "none" }}>
-            Böden anzeigen
-          </button>
-          <style>{`@media(max-width:768px){.step2 .go-btn[style]{display:block !important;}}`}</style>
         </div>
       )}
 
@@ -95,53 +105,56 @@ export default function RaumplanerApp() {
       {currentStep === 3 && uploadedImage && (
         <>
           {error ? (
-            <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
-              <StepIndicator currentStep={3} />
-              <div style={{background:'white',borderRadius:24,padding:48,textAlign:'center',border:'1px solid #E5E5E5'}}>
-                <p style={{fontSize:15,color:'#1A1A1A'}}>{error}</p>
-                <div style={{marginTop:20,display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
-                  <button onClick={handleApplyFloor} style={{padding:'14px 24px',borderRadius:14,border:'none',background:'#0D0D0D',color:'white',fontSize:14,fontWeight:600,cursor:'pointer'}}>Nochmal versuchen</button>
-                  <button onClick={handleTryAnother} style={{padding:'14px 24px',borderRadius:14,background:'white',color:'#1A1A1A',fontSize:14,fontWeight:600,cursor:'pointer',border:'1.5px solid #E5E5E5'}}>Anderen Boden</button>
+            <div style={{ animation: "fadeUp .4s ease" }}>
+              <div style={S.darkBar}><StepIndicator currentStep={3} /></div>
+              <div style={S.content}>
+                <div style={{ maxWidth: 600, margin: "40px auto", background: "#161616", borderRadius: 24, padding: 48, textAlign: "center", border: "1px solid #2a2a2a" }}>
+                  <p style={{ fontSize: 15, color: "#ccc" }}>{error}</p>
+                  <div style={{ marginTop: 20, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button onClick={handleApplyFloor} style={S.btnGold}>Nochmal versuchen</button>
+                    <button onClick={handleTryAnother} style={S.btnOutline}>Anderen Boden</button>
+                  </div>
                 </div>
               </div>
             </div>
           ) : generating ? (
-            <div style={{minHeight:520,display:'flex',alignItems:'center',justifyContent:'center',background:'#FAFAF8'}}>
-              <div style={{background:'white',borderRadius:24,padding:'48px 52px',textAlign:'center',boxShadow:'0 24px 64px rgba(0,0,0,0.07)',animation:'fadeUp 0.4s ease'}}>
-                <div style={{width:52,height:52,border:'3px solid #eee',borderTopColor:'#C8A415',borderRadius:'50%',animation:'spin 0.7s linear infinite',margin:'0 auto 24px'}} />
-                <h3 style={{fontSize:18,fontWeight:700,marginBottom:8}}>KI generiert Vorschau</h3>
-                <p style={{fontSize:14,color:'#6B6B6B'}}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
-                <div style={{marginTop:24,height:3,background:'#eee',borderRadius:2,maxWidth:200,marginLeft:'auto',marginRight:'auto',overflow:'hidden'}}>
-                  <div style={{height:'100%',background:'#C8A415',borderRadius:2,animation:'loadProgress 15s ease-out forwards'}} />
-                </div>
-                <p style={{fontSize:12,color:'#bbb',marginTop:16}}>Dies kann 10–20 Sekunden dauern</p>
+            <div style={S.loadWrap}>
+              <div style={S.loadBox}>
+                <div style={S.spinner} />
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#fff" }}>KI generiert Vorschau</h3>
+                <p style={{ fontSize: 14, color: "#888" }}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
+                <div style={S.loadBar}><div style={S.loadFill} /></div>
+                <p style={{ fontSize: 12, color: "#555", marginTop: 16 }}>Dies kann 10–20 Sekunden dauern</p>
               </div>
             </div>
           ) : resultImage ? (
-            <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
-              <StepIndicator currentStep={3} />
+            <div style={{ animation: "fadeUp .4s ease" }}>
+              <div style={S.darkBar}><StepIndicator currentStep={3} /></div>
+              <div style={{ ...S.content, background: "#111" }}>
+                <div style={{ maxWidth: 880, margin: "0 auto" }}>
+                  <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
 
-              <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
-
-              {selectedFloor && (
-                <div style={{marginTop:20,padding:20,background:'white',border:'1px solid #E5E5E5',borderRadius:20,display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
-                  {selectedFloor.texture_url && (
-                    <img src={selectedFloor.texture_url} alt="" style={{width:72,height:72,borderRadius:12,objectFit:'cover',flexShrink:0}} />
+                  {selectedFloor && (
+                    <div style={S.prodCard}>
+                      {selectedFloor.texture_url && (
+                        <img src={selectedFloor.texture_url} alt="" style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>{selectedFloor.name}</h3>
+                        <p style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{selectedFloor.detail}</p>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: "#C8A415" }}>{selectedFloor.price}</div>
+                    </div>
                   )}
-                  <div style={{flex:1,minWidth:0}}>
-                    <h3 style={{fontSize:17,fontWeight:700,color:'#1A1A1A'}}>{selectedFloor.name}</h3>
-                    <p style={{fontSize:13,color:'#6B6B6B',marginTop:2}}>{selectedFloor.detail}</p>
-                  </div>
-                  <div style={{fontSize:22,fontWeight:800,color:'#C8A415'}}>{selectedFloor.price}</div>
-                </div>
-              )}
 
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginTop:20}}>
-                <button onClick={() => setCurrentStep(4)} style={{padding:'14px 16px',borderRadius:14,border:'none',background:'#C8A415',color:'#0D0D0D',fontSize:14,fontWeight:600,cursor:'pointer',transition:'all .25s'}}>Im Shop ansehen</button>
-                <button onClick={handleTryAnother} style={{padding:'14px 16px',borderRadius:14,background:'white',color:'#1A1A1A',fontSize:14,fontWeight:600,cursor:'pointer',border:'1.5px solid #E5E5E5',transition:'all .25s'}}>Anderen Boden testen</button>
-                <button onClick={handleDownload} style={{padding:'14px 16px',borderRadius:14,border:'none',background:'#0D0D0D',color:'white',fontSize:14,fontWeight:600,cursor:'pointer',transition:'all .25s'}}>Bild speichern</button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 20 }}>
+                    <button onClick={() => setCurrentStep(4)} style={S.btnGold}>Im Shop ansehen</button>
+                    <button onClick={handleTryAnother} style={S.btnOutline}>Anderen Boden testen</button>
+                    <button onClick={handleDownload} style={S.btnBlack}>Bild speichern</button>
+                  </div>
+                </div>
               </div>
-              <style>{`@media(max-width:768px){div[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr !important;} div[style*="display: flex"][style*="gap: 20px"]{flex-direction:column;text-align:center;}}`}</style>
+              <style>{`@media(max-width:768px){div[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr !important;}}`}</style>
             </div>
           ) : null}
         </>
@@ -149,8 +162,13 @@ export default function RaumplanerApp() {
 
       {/* ═══ STEP 4: Product Detail ═══ */}
       {currentStep === 4 && selectedFloor && (
-        <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
-          <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />
+        <div style={{ animation: "fadeUp .4s ease" }}>
+          <div style={S.darkBar}><StepIndicator currentStep={3} /></div>
+          <div style={S.content}>
+            <div style={{ maxWidth: 880, margin: "0 auto" }}>
+              <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />
+            </div>
+          </div>
         </div>
       )}
     </div>
