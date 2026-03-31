@@ -6,11 +6,11 @@
   --oak: #8B6914;
   --oak-light: #C4A35A;
   --oak-pale: #F5EFE0;
-  --oak-bg: #FAF7F0;
+  --oak-bg: #EFEBE2;
   --dark: #1A1A18;
   --grey: #6B6B63;
   --grey-light: #A8A89E;
-  --grey-lighter: #D4D0C8;
+  --grey-lighter: #E0DDD6;
   --green: #27AE60;
   --green-bg: #D5F5E3;
   --white: #FFFFFF;
@@ -19,4 +19,5 @@
 body {
   background-color: var(--oak-bg);
   color: var(--dark);
+  font-size: 15px;
 }
