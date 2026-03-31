@@ -5,26 +5,26 @@ import { useState, useRef, DragEvent, ChangeEvent } from "react";
 interface ImageUploadProps { onImageUploaded: (base64: string) => void; }
 const MAX_SIZE = 20 * 1024 * 1024;
 
-function compressImage(src: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let { naturalWidth: w, naturalHeight: h } = img;
-      const MAX = 1024;
-      if (w > MAX || h > MAX) {
-        const ratio = w / h;
-        if (w > h) { w = MAX; h = Math.round(MAX / ratio); }
-        else { h = MAX; w = Math.round(MAX * ratio); }
-      }
-      const c = document.createElement("canvas"); c.width = w; c.height = h;
-      const ctx = c.getContext("2d");
-      if (!ctx) { reject(new Error("Canvas")); return; }
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(c.toDataURL("image/jpeg", 0.5));
-    };
-    img.onerror = () => reject(new Error("Fail"));
-    img.src = src;
-  });
+async function compressFile(file: Blob): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const MAX = 1024;
+  let cw = bitmap.width, ch = bitmap.height;
+  if (cw > MAX || ch > MAX) {
+    if (cw > ch) { ch = Math.round(MAX * ch / cw); cw = MAX; }
+    else { cw = Math.round(MAX * cw / ch); ch = MAX; }
+  }
+  const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("Canvas");
+  ctx.drawImage(bitmap, 0, 0, cw, ch);
+  bitmap.close();
+  return c.toDataURL("image/jpeg", 0.5);
+}
+
+async function compressB64(src: string): Promise<string> {
+  const res = await fetch(src);
+  const blob = await res.blob();
+  return compressFile(blob);
 }
 
 export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
@@ -43,14 +43,12 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
     setProcessing(true);
     if (isHeic) {
       setProcessingText("HEIC wird konvertiert...");
-      try { const fd = new FormData(); fd.append("file", file); const res = await fetch("/api/convert-heic",{method:"POST",body:fd}); const data = await res.json(); if(!res.ok||!data.image){setError("HEIC fehlgeschlagen.");setProcessing(false);return;} setPreview(await compressImage(data.image));setProcessing(false); } catch{setError("HEIC fehlgeschlagen.");setProcessing(false);}
+      try { const fd = new FormData(); fd.append("file", file); const res = await fetch("/api/convert-heic",{method:"POST",body:fd}); const data = await res.json(); if(!res.ok||!data.image){setError("HEIC fehlgeschlagen.");setProcessing(false);return;} setPreview(await compressB64(data.image));setProcessing(false); } catch{setError("HEIC fehlgeschlagen.");setProcessing(false);}
       return;
     }
     setProcessingText("Wird komprimiert...");
-    const reader = new FileReader();
-    reader.onload = async () => { try{setPreview(await compressImage(reader.result as string));}catch{setError("Fehler.");} setProcessing(false); };
-    reader.onerror = () => { setError("Lesefehler."); setProcessing(false); };
-    reader.readAsDataURL(file);
+    try { setPreview(await compressFile(file)); } catch { setError("Fehler."); }
+    setProcessing(false);
   }
 
   // Preview state
