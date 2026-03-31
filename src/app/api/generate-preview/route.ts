@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       image: images,
       prompt,
       size,
-      quality: "medium",
+      quality: "low",
       input_fidelity: "high",
     });
 
