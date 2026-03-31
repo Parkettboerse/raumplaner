@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { toFile } from "openai";
 import { getProducts } from "@/lib/blob-products";
 
 export const maxDuration = 120;
@@ -15,31 +16,9 @@ function getClient(): OpenAI {
   return _client;
 }
 
-function detectSize(dataUrl: string): "1536x1024" | "1024x1536" | "1024x1024" {
+function b64ToBuffer(dataUrl: string): Buffer {
   const b64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
-  const buf = Buffer.from(b64, "base64");
-  let w = 0, h = 0;
-
-  // JPEG
-  if (buf[0] === 0xff && buf[1] === 0xd8) {
-    for (let i = 2; i < buf.length - 8; i++) {
-      if (buf[i] === 0xff && (buf[i + 1] === 0xc0 || buf[i + 1] === 0xc2)) {
-        h = buf.readUInt16BE(i + 5);
-        w = buf.readUInt16BE(i + 7);
-        break;
-      }
-    }
-  }
-  // PNG
-  else if (buf[0] === 0x89 && buf[1] === 0x50) {
-    w = buf.readUInt32BE(16);
-    h = buf.readUInt32BE(20);
-  }
-
-  const ratio = w && h ? w / h : 1;
-  if (ratio > 1.2) return "1536x1024";
-  if (ratio < 0.83) return "1024x1536";
-  return "1024x1024";
+  return Buffer.from(b64, "base64");
 }
 
 export async function POST(request: NextRequest) {
@@ -63,46 +42,49 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ resultImage: roomImage, demo: true, warning: "Demo-Modus" });
   }
 
-  const roomUrl = roomImage.startsWith("data:") ? roomImage : `data:image/jpeg;base64,${roomImage}`;
-  const texUrl = textureImage
-    ? (textureImage.startsWith("data:") ? textureImage : `data:image/jpeg;base64,${textureImage}`)
-    : null;
-  const size = detectSize(roomUrl);
-
-  // Simple prompt — exactly like ChatGPT
-  const prompt = texUrl
-    ? `Lege in diesen Raum diesen Boden (${product.name}). Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`
-    : `Lege in diesen Raum einen ${product.name} Boden (${product.detail}). Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
-
-  const content: any[] = [
-    { type: "input_image", image_url: roomUrl },
-  ];
-  if (texUrl) content.push({ type: "input_image", image_url: texUrl });
-  content.push({ type: "input_text", text: prompt });
-
-  console.log("[generate-preview]", product.name, "| texture:", !!texUrl, "| size:", size);
-
   try {
     const openai = getClient();
-    const response = await openai.responses.create({
-      model: "gpt-4o",
-      input: [{ role: "user", content }],
-      tools: [{ type: "image_generation", size }],
-    });
 
-    const img = response.output.find((o: any) => o.type === "image_generation_call");
-    if (img && "result" in img) {
-      console.log("[generate-preview] OK");
-      return NextResponse.json({ resultImage: `data:image/png;base64,${(img as any).result}` });
+    // Convert base64 images to File objects for the Edit API
+    const roomBuffer = b64ToBuffer(roomImage);
+    const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
+
+    const images: any[] = [roomFile];
+    let prompt: string;
+
+    if (textureImage) {
+      const texBuffer = b64ToBuffer(textureImage);
+      const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
+      images.push(texFile);
+      prompt = `Edit the first image: replace ONLY the floor with the flooring texture shown in the second image (${product.name}). Keep everything else exactly the same - all furniture, walls, windows, doors, decoration, plants must remain identical. The new floor must match the perspective and lighting of the room.`;
+    } else {
+      prompt = `Edit this image: replace ONLY the floor with photorealistic ${product.name} flooring (${product.detail}). Keep everything else exactly the same - all furniture, walls, decoration must remain identical.`;
     }
 
-    console.error("[generate-preview] No image:", JSON.stringify(response.output).slice(0, 200));
-    return NextResponse.json({ error: "Bildgenerierung fehlgeschlagen." }, { status: 500 });
+    console.log("[generate-preview] Calling images.edit, product:", product.name, "images:", images.length);
+
+    const result = await openai.images.edit({
+      model: "gpt-image-1",
+      image: images,
+      prompt,
+      size: "1024x1024",
+      quality: "low",
+    });
+
+    const b64 = result.data?.[0]?.b64_json;
+    if (!b64) {
+      console.error("[generate-preview] No b64_json in response");
+      return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
+    }
+
+    console.log("[generate-preview] Success");
+    return NextResponse.json({ resultImage: `data:image/png;base64,${b64}` });
   } catch (err: any) {
-    console.error("[generate-preview]", err?.message, err?.status);
+    console.error("[generate-preview] Error:", err?.message, err?.status);
     const msg =
       err?.status === 429 ? "Zu viele Anfragen. Bitte warten." :
       err?.status === 401 ? "Ungültiger API-Key." :
+      err?.status === 400 ? "Anfrage abgelehnt. Bitte anderes Foto versuchen." :
       "Fehler bei der Generierung. Bitte erneut versuchen.";
     return NextResponse.json({ error: msg }, { status: err?.status || 500 });
   }
