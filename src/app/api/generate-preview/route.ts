@@ -16,35 +16,72 @@ function getClient(): OpenAI {
 }
 
 /**
- * Build the strict German prompt that tells the model to ONLY replace the floor.
+ * Detect aspect ratio from a base64 data URL by reading the image header.
+ * Returns the best matching OpenAI size parameter.
  */
+function detectSize(dataUrl: string): "1536x1024" | "1024x1536" | "1024x1024" {
+  // Extract base64 data
+  const b64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+  const buf = Buffer.from(b64, "base64");
+
+  let width = 0;
+  let height = 0;
+
+  // JPEG: find SOF0 marker (FF C0) which contains dimensions
+  if (buf[0] === 0xff && buf[1] === 0xd8) {
+    for (let i = 2; i < buf.length - 8; i++) {
+      if (buf[i] === 0xff && (buf[i + 1] === 0xc0 || buf[i + 1] === 0xc2)) {
+        height = buf.readUInt16BE(i + 5);
+        width = buf.readUInt16BE(i + 7);
+        break;
+      }
+    }
+  }
+  // PNG: dimensions at fixed offset
+  else if (buf[0] === 0x89 && buf[1] === 0x50) {
+    width = buf.readUInt32BE(16);
+    height = buf.readUInt32BE(20);
+  }
+
+  console.log("[generate-preview] Detected dimensions:", width, "x", height);
+
+  if (width === 0 || height === 0) return "1024x1024";
+
+  const ratio = width / height;
+  if (ratio > 1.2) return "1536x1024";      // landscape
+  if (ratio < 0.83) return "1024x1536";      // portrait
+  return "1024x1024";                         // square-ish
+}
+
 function buildPrompt(productName: string, productCategory: string, productDetail: string, hasTexture: boolean): string {
   if (hasTexture) {
     return `Du siehst zwei Bilder:
-Bild 1: Ein Foto eines Raumes.
-Bild 2: Eine Textur/Muster eines Bodenbelags (Produktname: ${productName}, Typ: ${productCategory}, Details: ${productDetail}).
+Bild 1: Ein Foto eines Raumes. Dies ist das REFERENZBILD — alles in diesem Bild ausser dem Boden muss EXAKT so bleiben wie es ist.
+Bild 2: Eine Textur/Muster eines Bodenbelags (${productName}, ${productCategory}).
 
 AUFGABE: Erstelle eine fotorealistische Version von Bild 1, bei der AUSSCHLIESSLICH der Bodenbelag durch den Boden aus Bild 2 ersetzt wird.
 
-STRIKTE REGELN:
+STRIKTE REGELN — KEINE AUSNAHMEN:
 - Der Boden muss die EXAKTE Textur, Farbe und Maserung aus Bild 2 haben
-- Der Boden muss perspektivisch korrekt verlegt sein (Fluchtpunkte beachten)
-- ALLE Möbel, Wände, Decken, Fenster, Türen, Deko, Pflanzen, Teppiche und sonstige Einrichtungsgegenstände müssen PIXEL FÜR PIXEL identisch zu Bild 1 bleiben
+- Der Boden muss perspektivisch korrekt verlegt sein (Fluchtpunkte des Originalfotos beachten)
+- ALLE Möbel, Wände, Decken, Fenster, Türen, Deko, Pflanzen, Teppiche, Regale und sonstige Einrichtungsgegenstände müssen IDENTISCH zu Bild 1 bleiben — gleiche Position, gleiche Farbe, gleiche Form
+- Die Raumgeometrie, der Blickwinkel und die Perspektive müssen EXAKT dem Original entsprechen
 - Beleuchtung, Schatten und Reflexionen auf dem neuen Boden müssen zur Raumbeleuchtung aus Bild 1 passen
-- Das Ergebnis muss aussehen wie ein echtes Foto — KEINE künstlichen Artefakte
-- Verändere NICHTS außer dem Boden. Wenn du unsicher bist ob etwas zum Boden gehört, lass es unverändert.`;
+- Das Ergebnis muss aussehen wie ein echtes Foto — KEINE künstlichen Artefakte, KEINE Verzerrungen
+- Verändere NICHTS ausser dem Boden. Absolut nichts. Wenn du unsicher bist ob etwas zum Boden gehört, lass es unverändert.
+- Das Bild muss die GLEICHE Komposition und den GLEICHEN Bildausschnitt wie Bild 1 haben`;
   }
 
-  return `Du siehst ein Foto eines Raumes.
+  return `Du siehst ein Foto eines Raumes. Dies ist das REFERENZBILD.
 
 AUFGABE: Erstelle eine fotorealistische Version dieses Fotos, bei der AUSSCHLIESSLICH der Bodenbelag durch ${productName} (${productDetail}) ersetzt wird.
 
-STRIKTE REGELN:
-- ALLE Möbel, Wände, Decken, Fenster, Türen, Deko, Pflanzen und sonstige Einrichtungsgegenstände müssen PIXEL FÜR PIXEL identisch bleiben
-- Der neue Boden muss perspektivisch korrekt verlegt sein
-- Beleuchtung, Schatten und Reflexionen müssen zur Raumbeleuchtung passen
-- Das Ergebnis muss aussehen wie ein echtes Foto
-- Verändere NICHTS außer dem Boden.`;
+STRIKTE REGELN — KEINE AUSNAHMEN:
+- ALLE Möbel, Wände, Decken, Fenster, Türen, Deko, Pflanzen und sonstige Einrichtungsgegenstände müssen IDENTISCH bleiben
+- Die Raumgeometrie, der Blickwinkel und die Perspektive müssen EXAKT dem Original entsprechen
+- Beleuchtung und Schatten müssen zur Raumbeleuchtung passen
+- Verändere NICHTS ausser dem Boden
+- Das Bild muss die GLEICHE Komposition wie das Original haben`;
 }
 
 export async function POST(request: NextRequest) {
@@ -70,15 +107,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ resultImage: roomImage, demo: true, warning: "Demo-Modus: Kein API Key" });
   }
 
-  // Ensure images are data URLs
   const roomDataUrl = roomImage.startsWith("data:") ? roomImage : `data:image/jpeg;base64,${roomImage}`;
   const textureDataUrl = textureImage
     ? (textureImage.startsWith("data:") ? textureImage : `data:image/jpeg;base64,${textureImage}`)
     : null;
 
+  // Detect aspect ratio from the uploaded room image
+  const outputSize = detectSize(roomDataUrl);
+
   const prompt = buildPrompt(product.name, product.category, product.detail, !!textureDataUrl);
 
-  // Build input content array
   const content: any[] = [
     { type: "input_image", image_url: roomDataUrl },
   ];
@@ -87,9 +125,8 @@ export async function POST(request: NextRequest) {
   }
   content.push({ type: "input_text", text: prompt });
 
-  console.log("[generate-preview] Product:", product.name, "| Has texture:", !!textureDataUrl);
+  console.log("[generate-preview] Product:", product.name, "| Texture:", !!textureDataUrl, "| Size:", outputSize);
 
-  // Retry logic: up to 2 attempts
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const openai = getClient();
@@ -99,12 +136,11 @@ export async function POST(request: NextRequest) {
         input: [{ role: "user", content }],
         tools: [{
           type: "image_generation",
-          // TODO: Test gpt-image-1-mini with quality "medium" (~$0.02/image vs $0.08)
-          // TODO: Implement caching for same room+floor combos
+          quality: "low",
+          size: outputSize,
         }],
       });
 
-      // Extract generated image
       const imageOutput = response.output.find(
         (item: any) => item.type === "image_generation_call"
       );
@@ -117,34 +153,21 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Check if there's a text response explaining why no image was generated
       const textOutput = response.output.find((item: any) => item.type === "message");
-      if (textOutput && "content" in textOutput) {
-        console.error("[generate-preview] Text response instead of image:", JSON.stringify(textOutput).slice(0, 300));
-      } else {
-        console.error("[generate-preview] No image in output:", JSON.stringify(response.output).slice(0, 300));
-      }
+      console.error("[generate-preview] No image:", JSON.stringify(textOutput || response.output).slice(0, 300));
 
-      // Only retry if this was the first attempt
-      if (attempt < 2) {
-        console.log("[generate-preview] Retrying...");
-        continue;
-      }
-
-      return NextResponse.json({ error: "Bildgenerierung fehlgeschlagen. Bitte versuchen Sie es erneut." }, { status: 500 });
+      if (attempt < 2) continue;
+      return NextResponse.json({ error: "Bildgenerierung fehlgeschlagen. Bitte erneut versuchen." }, { status: 500 });
     } catch (err: any) {
-      console.error(`[generate-preview] Attempt ${attempt} error:`, err?.message, err?.status);
+      console.error(`[generate-preview] Attempt ${attempt}:`, err?.message, err?.status);
 
-      if (attempt < 2 && err?.status !== 401 && err?.status !== 429) {
-        console.log("[generate-preview] Retrying after error...");
-        continue;
-      }
+      if (attempt < 2 && err?.status !== 401 && err?.status !== 429) continue;
 
       const msg =
-        err?.status === 429 ? "Zu viele Anfragen. Bitte warten Sie einen Moment." :
-        err?.status === 401 ? "Ungültiger API-Key. Bitte prüfen Sie die Konfiguration." :
-        err?.status === 400 ? "Anfrage wurde abgelehnt. Bitte versuchen Sie ein anderes Foto." :
-        `Fehler bei der Generierung. Bitte erneut versuchen.`;
+        err?.status === 429 ? "Zu viele Anfragen. Bitte warten." :
+        err?.status === 401 ? "Ungültiger API-Key." :
+        err?.status === 400 ? "Anfrage abgelehnt. Bitte anderes Foto versuchen." :
+        "Fehler bei der Generierung. Bitte erneut versuchen.";
 
       return NextResponse.json({ error: msg }, { status: err?.status || 500 });
     }
