@@ -36,7 +36,10 @@ export default function RaumplanerApp() {
       if (floor.texture_url) {
         try { const r = await fetch(floor.texture_url); if (r.ok) { const b = await r.blob(); textureImage = await new Promise<string>((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result as string); rd.readAsDataURL(b); }); } } catch {}
       }
-      const res = await fetch("/api/generate-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomImage: uploadedImage, floorId: floor.id, textureImage }) });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
+      const res = await fetch("/api/generate-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomImage: uploadedImage, floorId: floor.id, textureImage }), signal: controller.signal });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Fehler bei der Generierung"); setGenerating(false); return; }
       setResultImage(data.resultImage); setGenerating(false);
@@ -114,7 +117,7 @@ export default function RaumplanerApp() {
                 <div className="mx-auto mt-6 overflow-hidden rounded-full" style={{ height: "3px", maxWidth: "200px", background: "#eee" }}>
                   <div className="h-full rounded-full" style={{ background: "var(--gold)", animation: "loadProgress 15s ease-out forwards" }} />
                 </div>
-                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Dies kann 10-20 Sekunden dauern</p>
+                <p className="mt-4 text-[12px]" style={{ color: "#bbb" }}>Bitte haben Sie einen Moment Geduld</p>
               </div>
             </div>
           ) : resultImage ? (
