@@ -28,7 +28,10 @@ export function slugify(text: string): string {
  * Looks for blobs under textures/ that match the product's slug.
  */
 async function matchTextures(products: any[]): Promise<boolean> {
-  const missing = products.filter((p) => !p.texture_url);
+  // Products need matching if texture_url is empty OR is a local path (not a blob URL)
+  const missing = products.filter(
+    (p) => !p.texture_url || (!p.texture_url.startsWith("http") && p.texture_url.startsWith("/"))
+  );
   if (missing.length === 0) return false;
 
   try {
