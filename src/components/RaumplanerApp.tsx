@@ -47,7 +47,6 @@ export default function RaumplanerApp() {
   }
 
   function handleApplyFloor() { if (selectedFloor) generatePreview(selectedFloor); }
-  function handleTryAnother() { setSelectedFloor(null); setResultImage(null); setError(null); setGenerating(false); setCurrentStep(2); }
 
   function handleDownload() {
     if (!resultImage) return;
@@ -56,29 +55,87 @@ export default function RaumplanerApp() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
+  // Steps 2 and 3 share the same two-column layout
+  const showGrid = (currentStep === 2 || currentStep === 3) && uploadedImage;
+
   return (
     <div style={{ minHeight: "100vh", background: "#0D0D0D", fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ═══ STEP 1 ═══ */}
       {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
 
-      {/* ═══ STEP 2 ═══ */}
-      {currentStep === 2 && uploadedImage && (
+      {/* ═══ STEPS 2 & 3: Same grid layout ═══ */}
+      {showGrid && (
         <div style={{ animation: "fadeUp .4s ease" }}>
           <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}>
-            <StepIndicator currentStep={2} />
+            <StepIndicator currentStep={currentStep} />
           </div>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 24px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, alignItems: "start" }}>
-              <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", border: "1px solid #2a2a2a" }}>
-                <img src={uploadedImage} alt="Ihr Raum" style={{ width: "100%", display: "block" }} />
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "28px 24px 20px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: "white" }}>Wählen Sie einen Bodenbelag</span>
-                  <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid #444", color: "#ccc", padding: "6px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Anderes Foto</button>
-                </div>
+
+              {/* LEFT: Image / Slider / Spinner */}
+              <div>
+                {generating ? (
+                  /* Loading spinner in place of image */
+                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", background: "#1A1A1A", minHeight: 350, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                    <div style={{ width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 24 }} />
+                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>KI generiert Vorschau</h3>
+                    <p style={{ fontSize: 14, color: "#888" }}>{selectedFloor?.name}</p>
+                    <div style={{ marginTop: 20, height: 3, background: "#333", borderRadius: 2, width: 180, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 15s ease-out forwards" }} />
+                    </div>
+                    <p style={{ fontSize: 12, color: "#555", marginTop: 12 }}>10–20 Sekunden</p>
+                  </div>
+                ) : error ? (
+                  /* Error in place of image */
+                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", background: "#1A1A1A", minHeight: 250, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40 }}>
+                    <p style={{ fontSize: 15, color: "#ccc", textAlign: "center" }}>{error}</p>
+                    <button onClick={handleApplyFloor} style={{ marginTop: 16, padding: "12px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
+                  </div>
+                ) : resultImage ? (
+                  /* Before/After slider + actions below */
+                  <div>
+                    <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
+
+                    {selectedFloor && (
+                      <div style={{ marginTop: 16, padding: 16, background: "#1A1A1A", border: "1px solid #2a2a2a", borderRadius: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                        {selectedFloor.texture_url && (
+                          <img src={selectedFloor.texture_url} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{selectedFloor.name}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>{selectedFloor.detail}</div>
+                        </div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: "#C8A415" }}>{selectedFloor.price}</div>
+                      </div>
+                    )}
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+                      <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
+                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Bild speichern</button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Original uploaded photo */
+                  <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", border: "1px solid #2a2a2a" }}>
+                    <img src={uploadedImage} alt="Ihr Raum" style={{ width: "100%", display: "block" }} />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "28px 24px 20px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "white" }}>Wählen Sie einen Bodenbelag</span>
+                      <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid #444", color: "#ccc", padding: "6px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Anderes Foto</button>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* RIGHT: Sidebar — always visible */}
               <div ref={sidebarRef}>
-                <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
+                <FloorCatalog
+                  products={products}
+                  loading={productsLoading}
+                  selectedFloor={selectedFloor}
+                  onFloorSelect={setSelectedFloor}
+                  onApply={handleApplyFloor}
+                />
               </div>
             </div>
           </div>
@@ -86,66 +143,7 @@ export default function RaumplanerApp() {
         </div>
       )}
 
-      {/* ═══ STEP 3 ═══ */}
-      {currentStep === 3 && uploadedImage && (
-        <>
-          {error ? (
-            <div style={{ animation: "fadeUp .4s ease" }}>
-              <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}><StepIndicator currentStep={3} /></div>
-              <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px 24px 40px" }}>
-                <div style={{ background: "#1A1A1A", borderRadius: 24, padding: 48, textAlign: "center", border: "1px solid #2a2a2a" }}>
-                  <p style={{ fontSize: 15, color: "#ccc" }}>{error}</p>
-                  <div style={{ marginTop: 20, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                    <button onClick={handleApplyFloor} style={{ padding: "14px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
-                    <button onClick={handleTryAnother} style={{ padding: "14px 24px", borderRadius: 14, background: "transparent", color: "#ccc", fontSize: 14, fontWeight: 600, cursor: "pointer", border: "1.5px solid #333" }}>Anderen Boden</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : generating ? (
-            <div style={{ minHeight: 520, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ background: "#1A1A1A", borderRadius: 24, padding: "48px 52px", textAlign: "center", boxShadow: "0 24px 64px rgba(0,0,0,0.4)", animation: "fadeUp 0.4s ease", border: "1px solid #2a2a2a" }}>
-                <div style={{ width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 24px" }} />
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#fff" }}>KI generiert Vorschau</h3>
-                <p style={{ fontSize: 14, color: "#888" }}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
-                <div style={{ marginTop: 24, height: 3, background: "#333", borderRadius: 2, maxWidth: 200, marginLeft: "auto", marginRight: "auto", overflow: "hidden" }}>
-                  <div style={{ height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 15s ease-out forwards" }} />
-                </div>
-                <p style={{ fontSize: 12, color: "#555", marginTop: 16 }}>Dies kann 10–20 Sekunden dauern</p>
-              </div>
-            </div>
-          ) : resultImage ? (
-            <div style={{ animation: "fadeUp .4s ease" }}>
-              <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}><StepIndicator currentStep={3} /></div>
-              <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 24px" }}>
-                <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
-
-                {selectedFloor && (
-                  <div style={{ marginTop: 20, padding: 20, background: "#1A1A1A", border: "1px solid #2a2a2a", borderRadius: 20, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-                    {selectedFloor.texture_url && (
-                      <img src={selectedFloor.texture_url} alt="" style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>{selectedFloor.name}</h3>
-                      <p style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{selectedFloor.detail}</p>
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: "#C8A415" }}>{selectedFloor.price}</div>
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 20 }}>
-                  <button onClick={() => setCurrentStep(4)} style={{ padding: "14px 16px", borderRadius: 14, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
-                  <button onClick={handleTryAnother} style={{ padding: "14px 16px", borderRadius: 14, background: "transparent", color: "#ccc", fontSize: 14, fontWeight: 600, cursor: "pointer", border: "1.5px solid #333" }}>Anderen Boden testen</button>
-                  <button onClick={handleDownload} style={{ padding: "14px 16px", borderRadius: 14, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Bild speichern</button>
-                </div>
-              </div>
-              <style>{`@media(max-width:768px){div[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr !important;} div[style*="display: flex"][style*="gap: 20px"][style*="flex-wrap"]{flex-direction:column;text-align:center;}}`}</style>
-            </div>
-          ) : null}
-        </>
-      )}
-
-      {/* ═══ STEP 4 ═══ */}
+      {/* ═══ STEP 4: Product Detail ═══ */}
       {currentStep === 4 && selectedFloor && (
         <div style={{ animation: "fadeUp .4s ease" }}>
           <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}><StepIndicator currentStep={3} /></div>
