@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
       prompt = "Ersetze nur den Boden in diesem Raum mit neuem Bodenbelag. Alles andere bleibt gleich.";
     }
 
+    console.log("[generate-preview] Detected size:", size, "Room image length:", roomImage.length);
+
     const result = await (openai.images.edit as any)({
       model: "gpt-image-1.5",
       image: images,
