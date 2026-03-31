@@ -17,12 +17,21 @@ function b64ToBuffer(dataUrl: string): Buffer {
 }
 
 async function detectSize(dataUrl: string): Promise<"1024x1024" | "1536x1024" | "1024x1536"> {
-  const buffer = b64ToBuffer(dataUrl);
-  const metadata = await sharp(buffer).metadata();
-  const w = metadata.width || 1024;
-  const h = metadata.height || 1024;
-  if (w > h * 1.2) return "1536x1024";
-  if (h > w * 1.2) return "1024x1536";
+  try {
+    const buffer = b64ToBuffer(dataUrl);
+    const metadata = await sharp(buffer).metadata();
+    const w = metadata.width || 0;
+    const h = metadata.height || 0;
+    console.log("[detect-size] width:", w, "height:", h);
+    if (w > 0 && h > 0) {
+      const ratio = w / h;
+      if (ratio > 1.15) return "1536x1024";
+      if (ratio < 0.85) return "1024x1536";
+      return "1024x1024";
+    }
+  } catch (e) {
+    console.error("[detect-size] Error:", e);
+  }
   return "1024x1024";
 }
 
