@@ -15,16 +15,21 @@ export default function StepIndicator({ currentStep }: { currentStep: number }) 
         return (
           <div key={step.num} className="flex items-center">
             {i > 0 && (
-              <div className="h-[2px] w-7 sm:w-10 rounded-full" style={{ backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "var(--grey-border)" }} />
+              <div className="relative h-[3px] w-8 overflow-hidden rounded-full sm:w-12" style={{ backgroundColor: "var(--grey-border)" }}>
+                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-500" style={{
+                  width: done ? "100%" : active ? "50%" : "0%",
+                  background: done ? "var(--black)" : "linear-gradient(90deg, var(--gold), var(--gold-hover))",
+                }} />
+              </div>
             )}
             <div className="flex flex-col items-center gap-1">
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300"
                 style={{
-                  backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "var(--white)",
+                  background: done ? "var(--black)" : active ? "linear-gradient(135deg, #C8A415, #D4B84A)" : "var(--white)",
                   color: done || active ? "var(--white)" : "var(--grey-light)",
                   border: !done && !active ? "2px solid var(--grey-border)" : "none",
-                  boxShadow: active ? "0 2px 10px var(--gold-glow)" : "none",
+                  boxShadow: active ? "0 3px 12px var(--gold-glow)" : "none",
                 }}
               >
                 {done ? (

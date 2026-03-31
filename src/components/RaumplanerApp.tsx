@@ -58,8 +58,8 @@ export default function RaumplanerApp() {
 
       {/* Step 1: Full-width upload */}
       {currentStep === 1 && (
-        <div className="px-4 py-8 sm:py-12">
-          <div className="mb-8 flex justify-center"><StepIndicator currentStep={1} /></div>
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
+          <div className="mb-6 flex justify-center"><StepIndicator currentStep={1} /></div>
           <ImageUpload onImageUploaded={handleImageUploaded} />
         </div>
       )}
