@@ -95,50 +95,53 @@ export default function RaumplanerApp() {
       {currentStep === 3 && uploadedImage && (
         <>
           {error ? (
-            <div className="result-wrap">
+            <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
               <StepIndicator currentStep={3} />
-              <div style={{ background: "white", borderRadius: "24px", padding: "48px", textAlign: "center", border: "1px solid var(--grey-border)" }}>
-                <p style={{ fontSize: "15px", color: "var(--dark)" }}>{error}</p>
-                <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-                  <button className="rb rb-black" onClick={handleApplyFloor}>Nochmal versuchen</button>
-                  <button className="rb rb-outline" onClick={handleTryAnother}>Anderen Boden</button>
+              <div style={{background:'white',borderRadius:24,padding:48,textAlign:'center',border:'1px solid #E5E5E5'}}>
+                <p style={{fontSize:15,color:'#1A1A1A'}}>{error}</p>
+                <div style={{marginTop:20,display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+                  <button onClick={handleApplyFloor} style={{padding:'14px 24px',borderRadius:14,border:'none',background:'#0D0D0D',color:'white',fontSize:14,fontWeight:600,cursor:'pointer'}}>Nochmal versuchen</button>
+                  <button onClick={handleTryAnother} style={{padding:'14px 24px',borderRadius:14,background:'white',color:'#1A1A1A',fontSize:14,fontWeight:600,cursor:'pointer',border:'1.5px solid #E5E5E5'}}>Anderen Boden</button>
                 </div>
               </div>
             </div>
           ) : generating ? (
-            <div className="load-wrap">
-              <div className="load-box">
-                <div className="load-spin" />
-                <h3>KI generiert Vorschau</h3>
-                <p>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
-                <div className="load-bar"><div className="load-bar-fill" /></div>
-                <div className="load-time">Dies kann 10–20 Sekunden dauern</div>
+            <div style={{minHeight:520,display:'flex',alignItems:'center',justifyContent:'center',background:'#FAFAF8'}}>
+              <div style={{background:'white',borderRadius:24,padding:'48px 52px',textAlign:'center',boxShadow:'0 24px 64px rgba(0,0,0,0.07)',animation:'fadeUp 0.4s ease'}}>
+                <div style={{width:52,height:52,border:'3px solid #eee',borderTopColor:'#C8A415',borderRadius:'50%',animation:'spin 0.7s linear infinite',margin:'0 auto 24px'}} />
+                <h3 style={{fontSize:18,fontWeight:700,marginBottom:8}}>KI generiert Vorschau</h3>
+                <p style={{fontSize:14,color:'#6B6B6B'}}>{selectedFloor?.name} wird in Ihren Raum eingesetzt</p>
+                <div style={{marginTop:24,height:3,background:'#eee',borderRadius:2,maxWidth:200,marginLeft:'auto',marginRight:'auto',overflow:'hidden'}}>
+                  <div style={{height:'100%',background:'#C8A415',borderRadius:2,animation:'loadProgress 15s ease-out forwards'}} />
+                </div>
+                <p style={{fontSize:12,color:'#bbb',marginTop:16}}>Dies kann 10–20 Sekunden dauern</p>
               </div>
             </div>
           ) : resultImage ? (
-            <div className="result-wrap">
+            <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
               <StepIndicator currentStep={3} />
 
               <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
 
               {selectedFloor && (
-                <div className="prod-result">
+                <div style={{marginTop:20,padding:20,background:'white',border:'1px solid #E5E5E5',borderRadius:20,display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
                   {selectedFloor.texture_url && (
-                    <div className="prod-result-tex"><img src={selectedFloor.texture_url} alt="" /></div>
+                    <img src={selectedFloor.texture_url} alt="" style={{width:72,height:72,borderRadius:12,objectFit:'cover',flexShrink:0}} />
                   )}
-                  <div className="prod-result-info">
-                    <h3>{selectedFloor.name}</h3>
-                    <p>{selectedFloor.detail}</p>
+                  <div style={{flex:1,minWidth:0}}>
+                    <h3 style={{fontSize:17,fontWeight:700,color:'#1A1A1A'}}>{selectedFloor.name}</h3>
+                    <p style={{fontSize:13,color:'#6B6B6B',marginTop:2}}>{selectedFloor.detail}</p>
                   </div>
-                  <div className="prod-result-price">{selectedFloor.price}</div>
+                  <div style={{fontSize:22,fontWeight:800,color:'#C8A415'}}>{selectedFloor.price}</div>
                 </div>
               )}
 
-              <div className="res-btns">
-                <button className="rb rb-gold" onClick={() => setCurrentStep(4)}>Im Shop ansehen</button>
-                <button className="rb rb-outline" onClick={handleTryAnother}>Anderen Boden testen</button>
-                <button className="rb rb-black" onClick={handleDownload}>Bild speichern</button>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginTop:20}}>
+                <button onClick={() => setCurrentStep(4)} style={{padding:'14px 16px',borderRadius:14,border:'none',background:'#C8A415',color:'#0D0D0D',fontSize:14,fontWeight:600,cursor:'pointer',transition:'all .25s'}}>Im Shop ansehen</button>
+                <button onClick={handleTryAnother} style={{padding:'14px 16px',borderRadius:14,background:'white',color:'#1A1A1A',fontSize:14,fontWeight:600,cursor:'pointer',border:'1.5px solid #E5E5E5',transition:'all .25s'}}>Anderen Boden testen</button>
+                <button onClick={handleDownload} style={{padding:'14px 16px',borderRadius:14,border:'none',background:'#0D0D0D',color:'white',fontSize:14,fontWeight:600,cursor:'pointer',transition:'all .25s'}}>Bild speichern</button>
               </div>
+              <style>{`@media(max-width:768px){div[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr !important;} div[style*="display: flex"][style*="gap: 20px"]{flex-direction:column;text-align:center;}}`}</style>
             </div>
           ) : null}
         </>
@@ -146,7 +149,7 @@ export default function RaumplanerApp() {
 
       {/* ═══ STEP 4: Product Detail ═══ */}
       {currentStep === 4 && selectedFloor && (
-        <div className="result-wrap">
+        <div style={{maxWidth:880,margin:'0 auto',padding:24,animation:'fadeUp .4s ease'}}>
           <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />
         </div>
       )}
