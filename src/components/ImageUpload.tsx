@@ -54,15 +54,19 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
     if (isHeic) {
       try {
-        const heic2any = (await import("heic2any")).default;
+        const heic2anyModule = await import("heic2any");
+        const heic2any = heic2anyModule.default || heic2anyModule;
         const converted = await heic2any({
           blob: file,
           toType: "image/jpeg",
-          quality: 0.9,
+          quality: 0.8,
         });
         blob = Array.isArray(converted) ? converted[0] : converted;
-      } catch {
-        setError("HEIC-Konvertierung fehlgeschlagen. Bitte verwenden Sie JPG oder PNG.");
+      } catch (err) {
+        console.error("HEIC conversion error:", err);
+        setError(
+          "HEIC-Konvertierung fehlgeschlagen. Bitte konvertieren Sie das Bild zuerst zu JPG oder PNG (z.B. über Dateien-App oder einen Online-Konverter)."
+        );
         setProcessing(false);
         return;
       }
