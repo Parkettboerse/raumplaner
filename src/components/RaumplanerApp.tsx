@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FloorProduct } from "@/types";
 import StepIndicator from "./StepIndicator";
 import ImageUpload from "./ImageUpload";
@@ -8,45 +8,9 @@ import FloorCornerPicker from "./FloorCornerPicker";
 import FloorCatalog from "./FloorCatalog";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
+import FloorPreview from "./FloorPreview";
 
 interface Corner { x: number; y: number }
-
-/** Create a PNG mask from polygon corners on a canvas.
- *  Floor area = transparent (alpha 0), rest = black (alpha 255).
- *  Returns base64 PNG data URL. */
-function createMaskFromCorners(
-  roomImgSrc: string,
-  corners: Corner[]
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const W = img.naturalWidth;
-      const H = img.naturalHeight;
-      const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext("2d")!;
-
-      // Fill entire canvas with black (opaque = keep)
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, W, H);
-
-      // Cut out floor polygon (transparent = replace)
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath();
-      const pts = corners.map((c) => ({ x: (c.x / 100) * W, y: (c.y / 100) * H }));
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.closePath();
-      ctx.fill();
-
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => reject(new Error("Mask creation failed"));
-    img.src = roomImgSrc;
-  });
-}
 
 export default function RaumplanerApp() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -55,7 +19,7 @@ export default function RaumplanerApp() {
   const [selectedFloor, setSelectedFloor] = useState<FloorProduct | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const [rendering, setRendering] = useState(false);
   const [products, setProducts] = useState<FloorProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
 
@@ -79,75 +43,42 @@ export default function RaumplanerApp() {
   }
 
   function handleReset() {
-    setUploadedImage(null);
-    setFloorCorners(null);
-    setSelectedFloor(null);
-    setResultImage(null);
-    setError(null);
-    setGenerating(false);
-    setCurrentStep(1);
+    setUploadedImage(null); setFloorCorners(null); setSelectedFloor(null);
+    setResultImage(null); setError(null); setRendering(false); setCurrentStep(1);
   }
 
-  async function handleApplyFloor() {
+  function handleApplyFloor() {
     if (!selectedFloor || !uploadedImage || !floorCorners) return;
-    setError(null);
-    setGenerating(true);
-    setResultImage(null);
-    setCurrentStep(4);
-
-    try {
-      // 1. Create mask client-side
-      console.log("[Raumplaner] Creating mask from", floorCorners.length, "corners");
-      const mask = await createMaskFromCorners(uploadedImage, floorCorners);
-
-      // 2. Send to API
-      console.log("[Raumplaner] Sending to API, floor:", selectedFloor.name);
-      const res = await fetch("/api/generate-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomImage: uploadedImage,
-          mask,
-          floorId: selectedFloor.id,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Fehler bei der Generierung");
-        setGenerating(false);
-        return;
-      }
-
-      if (data.warning) {
-        console.log("[Raumplaner] Warning:", data.warning);
-      }
-
-      setResultImage(data.resultImage);
-      setGenerating(false);
-    } catch (err) {
-      console.error("[Raumplaner] Generate error:", err);
-      setError("Netzwerkfehler. Bitte erneut versuchen.");
-      setGenerating(false);
-    }
+    setError(null); setResultImage(null); setRendering(true); setCurrentStep(4);
+    // FloorPreview component renders automatically
   }
+
+  // Called when user picks a different floor in step 4 — instant re-render
+  function handleSwitchFloor(floor: FloorProduct) {
+    setSelectedFloor(floor);
+    setResultImage(null);
+    setRendering(true);
+  }
+
+  const handlePreviewResult = useCallback((base64: string) => {
+    setResultImage(base64); setRendering(false);
+  }, []);
+
+  const handlePreviewError = useCallback((msg: string) => {
+    setError(msg); setRendering(false);
+  }, []);
 
   function handleTryAnother() {
-    setSelectedFloor(null);
-    setResultImage(null);
-    setError(null);
-    setGenerating(false);
-    setCurrentStep(3);
+    setSelectedFloor(null); setResultImage(null); setError(null);
+    setRendering(false); setCurrentStep(3);
   }
 
   function handleDownload() {
     if (!resultImage) return;
-    const link = document.createElement("a");
-    link.href = resultImage;
-    link.download = `raumvorschau-${selectedFloor?.name?.toLowerCase().replace(/\s+/g, "-") || "boden"}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = resultImage;
+    a.download = `raumvorschau-${selectedFloor?.name?.toLowerCase().replace(/\s+/g, "-") || "boden"}.jpg`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
   return (
@@ -156,20 +87,18 @@ export default function RaumplanerApp() {
       <header className="border-b bg-white" role="banner" style={{ borderColor: "var(--grey-lighter)" }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.jpg" alt="Parkettbörse Augsburg" className="h-[50px] w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <div className="hidden sm:block h-8 w-px" style={{ backgroundColor: "var(--grey-lighter)" }} />
             <span className="hidden sm:block font-display text-xl font-semibold" style={{ color: "var(--dark)" }}>Raumplaner</span>
           </div>
           <nav className="flex items-center gap-4" aria-label="Hauptnavigation">
-            <span className="hidden md:inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold" style={{ backgroundColor: "var(--oak-pale)", color: "var(--oak)" }}>KI-gestützte Vorschau</span>
+            <span className="hidden md:inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold" style={{ backgroundColor: "var(--oak-pale)", color: "var(--oak)" }}>Bodenvorschau</span>
             <a href="https://www.parkettboerse.net/shop" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:opacity-80" style={{ color: "var(--oak)" }}>Shop</a>
             <a href="https://www.parkettboerse.net/beratung" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:opacity-80" style={{ color: "var(--oak)" }}>Beratung</a>
           </nav>
         </div>
       </header>
 
-      {/* Main */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -181,23 +110,20 @@ export default function RaumplanerApp() {
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-xl" style={{ boxShadow: "0 4px 6px -1px rgba(139,105,20,0.08), 0 20px 40px -8px rgba(139,105,20,0.12)" }}>
           <div className="flex flex-col lg:flex-row">
-            {/* Left: Canvas */}
+            {/* Left */}
             <div className="flex-[65] border-b lg:border-b-0 lg:border-r" style={{ borderColor: "var(--grey-lighter)" }}>
               <div className="p-6 sm:p-8">
 
-                {/* Step 1 */}
                 {currentStep === 1 && (
                   <div className="animate-fadeIn"><ImageUpload onImageUploaded={handleImageUploaded} /></div>
                 )}
 
-                {/* Step 2 */}
                 {currentStep === 2 && uploadedImage && (
                   <div className="animate-fadeIn">
                     <FloorCornerPicker image={uploadedImage} onComplete={handleCornersComplete} onBack={handleReset} />
                   </div>
                 )}
 
-                {/* Step 3 */}
                 {currentStep === 3 && uploadedImage && (
                   <div className="animate-fadeIn">
                     <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
@@ -218,35 +144,19 @@ export default function RaumplanerApp() {
                   </div>
                 )}
 
-                {/* Step 4 */}
                 {currentStep === 4 && uploadedImage && (
                   <div className="animate-fadeIn">
                     {error ? (
-                      <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
-                        <img src={uploadedImage} alt="Raumfoto" className="w-full object-contain opacity-40" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="mx-4 max-w-sm rounded-2xl bg-white px-8 py-8 text-center shadow-xl">
-                            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-50">
-                              <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--dark)" }}>{error}</p>
-                            <div className="mt-4 flex flex-col gap-2">
-                              <button onClick={handleApplyFloor} className="rounded-lg py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--oak)" }}>Nochmal versuchen</button>
-                              <button onClick={handleTryAnother} className="rounded-lg border py-2 text-sm font-semibold" style={{ borderColor: "var(--grey-lighter)", color: "var(--dark)" }}>Anderen Boden</button>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="rounded-xl bg-red-50 p-6 text-center">
+                        <p className="text-sm font-semibold text-red-700">{error}</p>
+                        <button onClick={handleTryAnother} className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--oak)" }}>Anderen Boden wählen</button>
                       </div>
-                    ) : generating ? (
+                    ) : rendering ? (
                       <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
-                        <img src={uploadedImage} alt="Wird generiert" className="w-full object-contain" style={{ filter: "blur(3px)", opacity: 0.5 }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-white/30">
-                          <div className="rounded-2xl bg-white px-10 py-8 text-center shadow-xl">
-                            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "var(--oak-pale)", borderTopColor: "var(--oak)" }} />
-                            <p className="font-display text-base font-semibold" style={{ color: "var(--dark)" }}>KI generiert Vorschau...</p>
-                            <p className="mt-1 text-xs" style={{ color: "var(--grey)" }}>{selectedFloor?.name} wird eingesetzt</p>
-                            <p className="mt-3 text-xs" style={{ color: "var(--grey-light)" }}>Dies kann 10-30 Sekunden dauern</p>
-                          </div>
+                        <img src={uploadedImage} alt="Wird gerendert" className="w-full object-contain" style={{ filter: "blur(2px)", opacity: 0.6 }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "var(--oak-pale)", borderTopColor: "var(--oak)" }} />
+                          <p className="mt-2 text-sm font-medium" style={{ color: "var(--dark)" }}>Vorschau wird erstellt...</p>
                         </div>
                       </div>
                     ) : resultImage ? (
@@ -268,14 +178,13 @@ export default function RaumplanerApp() {
                   </div>
                 )}
 
-                {/* Step 5 */}
                 {currentStep === 5 && selectedFloor && (
                   <div className="animate-fadeIn"><ProductDetail product={selectedFloor} onBack={() => setCurrentStep(4)} /></div>
                 )}
               </div>
             </div>
 
-            {/* Right: Sidebar */}
+            {/* Right */}
             <div ref={sidebarRef} className="flex-[35] lg:max-h-[650px]">
               {currentStep <= 2 && (
                 <div className="flex h-full flex-col items-center justify-center p-6 text-center opacity-60">
@@ -289,18 +198,9 @@ export default function RaumplanerApp() {
               {currentStep === 3 && (
                 <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={setSelectedFloor} onApply={handleApplyFloor} />
               )}
-              {currentStep === 4 && !generating && resultImage && (
-                <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor}
-                  onFloorSelect={(floor) => { setSelectedFloor(floor); }}
-                  onApply={handleApplyFloor}
-                />
-              )}
-              {currentStep === 4 && generating && (
-                <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "var(--oak-pale)", borderTopColor: "var(--oak)" }} />
-                  <p className="mt-3 text-sm font-medium" style={{ color: "var(--dark)" }}>Generierung läuft...</p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--grey-light)" }}>{selectedFloor?.name}</p>
-                </div>
+              {/* Step 4: catalog always visible — click another floor = instant re-render */}
+              {currentStep === 4 && (
+                <FloorCatalog products={products} loading={productsLoading} selectedFloor={selectedFloor} onFloorSelect={handleSwitchFloor} onApply={handleApplyFloor} />
               )}
               {currentStep === 5 && resultImage && (
                 <div className="flex h-full flex-col p-5 sm:p-6">
@@ -316,6 +216,17 @@ export default function RaumplanerApp() {
           </div>
         </div>
       </main>
+
+      {/* Hidden canvas renderer */}
+      {rendering && uploadedImage && selectedFloor && floorCorners && (
+        <FloorPreview
+          originalImage={uploadedImage}
+          corners={floorCorners}
+          textureUrl={selectedFloor.texture_url}
+          onResult={handlePreviewResult}
+          onError={handlePreviewError}
+        />
+      )}
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
