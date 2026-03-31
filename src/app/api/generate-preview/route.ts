@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { toFile } from "openai";
-import { getProducts } from "@/lib/blob-products";
+import sharp from "sharp";
 
 export const maxDuration = 120;
-
-function isDemoMode(): boolean {
-  const key = process.env.OPENAI_API_KEY;
-  return !key || key === "sk-dein-key-hier" || key.trim() === "";
-}
 
 let _client: OpenAI | null = null;
 function getClient(): OpenAI {
@@ -19,6 +13,16 @@ function getClient(): OpenAI {
 function b64ToBuffer(dataUrl: string): Buffer {
   const b64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
   return Buffer.from(b64, "base64");
+}
+
+async function detectAspectRatio(dataUrl: string): Promise<"1536x1024" | "1024x1536" | "1024x1024"> {
+  const buffer = b64ToBuffer(dataUrl);
+  const metadata = await sharp(buffer).metadata();
+  const w = metadata.width || 1024;
+  const h = metadata.height || 1024;
+  if (w > h * 1.2) return "1536x1024";
+  if (h > w * 1.2) return "1024x1536";
+  return "1024x1024";
 }
 
 export async function POST(request: NextRequest) {
@@ -32,59 +36,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "roomImage und floorId erforderlich" }, { status: 400 });
   }
 
-  const products = await getProducts();
-  const product = products.find((p: any) => p.id === floorId);
-  if (!product) {
-    return NextResponse.json({ error: "Produkt nicht gefunden" }, { status: 404 });
-  }
-
-  if (isDemoMode()) {
-    return NextResponse.json({ resultImage: roomImage, demo: true, warning: "Demo-Modus" });
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || key === "sk-dein-key-hier" || key.trim() === "") {
+    return NextResponse.json({ resultImage: roomImage, demo: true });
   }
 
   try {
     const openai = getClient();
+    const size = await detectAspectRatio(roomImage);
 
-    // Convert base64 images to File objects for the Edit API
-    const roomBuffer = b64ToBuffer(roomImage);
-    const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
-
-    const images: any[] = [roomFile];
-    let prompt: string;
+    const content: any[] = [
+      { type: "input_image", image_url: roomImage },
+    ];
 
     if (textureImage) {
-      const texBuffer = b64ToBuffer(textureImage);
-      const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
-      images.push(texFile);
-      prompt = `Edit the first image: replace ONLY the floor with the flooring texture shown in the second image (${product.name}). Keep everything else exactly the same - all furniture, walls, windows, doors, decoration, plants must remain identical. The new floor must match the perspective and lighting of the room.`;
-    } else {
-      prompt = `Edit this image: replace ONLY the floor with photorealistic ${product.name} flooring (${product.detail}). Keep everything else exactly the same - all furniture, walls, decoration must remain identical.`;
+      content.push({ type: "input_image", image_url: textureImage });
     }
 
-    console.log("[generate-preview] Calling images.edit, product:", product.name, "images:", images.length);
-
-    const result = await openai.images.edit({
-      model: "gpt-image-1",
-      image: images,
-      prompt,
-      size: "1024x1024",
-      quality: "low",
+    content.push({
+      type: "input_text",
+      text: "Lege in diesen Raum diesen Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben."
     });
 
-    const b64 = result.data?.[0]?.b64_json;
-    if (!b64) {
-      console.error("[generate-preview] No b64_json in response");
+    const response = await openai.responses.create({
+      model: "gpt-4o",
+      input: [{ role: "user", content }],
+      tools: [{ type: "image_generation", size, quality: "low" }],
+    });
+
+    const imageOutput = response.output.find(
+      (item: any) => item.type === "image_generation_call"
+    );
+
+    if (!imageOutput || !("result" in imageOutput)) {
       return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
     }
 
-    console.log("[generate-preview] Success");
-    return NextResponse.json({ resultImage: `data:image/png;base64,${b64}` });
+    return NextResponse.json({
+      resultImage: "data:image/png;base64," + (imageOutput as any).result
+    });
   } catch (err: any) {
-    console.error("[generate-preview] Error:", err?.message, err?.status);
+    console.error("[generate-preview]", err?.message);
     const msg =
       err?.status === 429 ? "Zu viele Anfragen. Bitte warten." :
       err?.status === 401 ? "Ungültiger API-Key." :
-      err?.status === 400 ? "Anfrage abgelehnt. Bitte anderes Foto versuchen." :
       "Fehler bei der Generierung. Bitte erneut versuchen.";
     return NextResponse.json({ error: msg }, { status: err?.status || 500 });
   }
