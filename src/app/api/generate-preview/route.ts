@@ -2,63 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOpenAIClient } from "@/lib/openai";
 import { toFile } from "openai";
 import { getProductById } from "@/lib/products";
+import { createFloorMask } from "@/lib/createMask";
 import sharp from "sharp";
 
 export const maxDuration = 60;
+
+interface FloorPoint {
+  x: number;
+  y: number;
+}
 
 function isDemoMode(): boolean {
   const key = process.env.OPENAI_API_KEY;
   return !key || key === "sk-dein-key-hier" || key.trim() === "";
 }
 
-/**
- * Generate a floor mask: bottom ~45% is transparent (to be replaced),
- * top ~55% is black (to be kept). The mask uses a gradient transition
- * zone in the middle for a natural blend.
- */
-async function generateFloorMask(
-  width: number,
-  height: number
-): Promise<Buffer> {
-  // Floor starts at roughly 55% from top (gradient from 45% to 55%)
-  const gradientTop = Math.round(height * 0.42);
-  const gradientBottom = Math.round(height * 0.55);
-
-  // Build raw RGBA pixel buffer
-  const pixels = Buffer.alloc(width * height * 4);
-
-  for (let y = 0; y < height; y++) {
-    let alpha: number;
-    if (y < gradientTop) {
-      // Top area: fully opaque black (keep)
-      alpha = 255;
-    } else if (y < gradientBottom) {
-      // Gradient zone: fade from opaque to transparent
-      const t = (y - gradientTop) / (gradientBottom - gradientTop);
-      alpha = Math.round(255 * (1 - t));
-    } else {
-      // Floor area: fully transparent (replace)
-      alpha = 0;
-    }
-
-    for (let x = 0; x < width; x++) {
-      const offset = (y * width + x) * 4;
-      pixels[offset] = 0;     // R
-      pixels[offset + 1] = 0; // G
-      pixels[offset + 2] = 0; // B
-      pixels[offset + 3] = alpha;
-    }
-  }
-
-  return sharp(pixels, {
-    raw: { width, height, channels: 4 },
-  })
-    .png()
-    .toBuffer();
-}
+/** Fallback mask: bottom ~50% of image */
+const FALLBACK_POLYGON: FloorPoint[] = [
+  { x: 0, y: 50 },
+  { x: 100, y: 45 },
+  { x: 100, y: 100 },
+  { x: 0, y: 100 },
+];
 
 export async function POST(request: NextRequest) {
-  let body: { roomImage?: string; floorId?: string };
+  let body: {
+    roomImage?: string;
+    floorId?: string;
+    floorRegion?: FloorPoint[];
+  };
   try {
     body = await request.json();
   } catch {
@@ -68,7 +40,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { roomImage, floorId } = body;
+  const { roomImage, floorId, floorRegion } = body;
 
   if (!roomImage || !floorId) {
     return NextResponse.json(
@@ -106,8 +78,13 @@ export async function POST(request: NextRequest) {
     .png()
     .toBuffer();
 
-  // Generate floor mask (transparent = area to replace)
-  const maskPng = await generateFloorMask(1024, 1024);
+  // Use detected polygon or fallback
+  const polygon = floorRegion && floorRegion.length >= 3
+    ? floorRegion
+    : FALLBACK_POLYGON;
+
+  // Create mask from polygon
+  const maskPng = await createFloorMask(polygon, 1024, 1024);
 
   const editPrompt =
     `Photorealistic ${product.name} floor (${product.detail}). ` +
@@ -148,7 +125,7 @@ export async function POST(request: NextRequest) {
   } catch (editErr: any) {
     console.error("OpenAI Edit API Error:", editErr);
 
-    // ── Fallback: Generate API without mask ──
+    // ── Fallback: Edit without mask ──
     try {
       const fallbackPrompt =
         `This is a photo of a room. Replace ONLY the floor/ground surface with ${product.name} (${product.detail}). ` +

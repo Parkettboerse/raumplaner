@@ -9,6 +9,11 @@ import ProcessingOverlay from "./ProcessingOverlay";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
 
+interface FloorPoint {
+  x: number;
+  y: number;
+}
+
 export default function RaumplanerApp() {
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -16,20 +21,45 @@ export default function RaumplanerApp() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [demoWarning, setDemoWarning] = useState<string | null>(null);
+  const [floorRegion, setFloorRegion] = useState<FloorPoint[] | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  async function detectFloor(image: string) {
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/detect-floor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomImage: image }),
+      });
+      const data = await res.json();
+      if (data.floorRegion) {
+        setFloorRegion(data.floorRegion);
+      }
+    } catch (err) {
+      console.error("Floor detection failed:", err);
+      // floorRegion stays null → generate-preview will use fallback
+    }
+    setAnalyzing(false);
+  }
 
   function handleImageUploaded(base64: string) {
     setUploadedImage(base64);
     setCurrentStep(2);
+    // Start floor detection in background
+    detectFloor(base64);
   }
 
   function handleReset() {
     setUploadedImage(null);
     setSelectedFloor(null);
     setResultImage(null);
+    setFloorRegion(null);
     setError(null);
     setDemoWarning(null);
+    setAnalyzing(false);
     setCurrentStep(1);
   }
 
@@ -54,6 +84,7 @@ export default function RaumplanerApp() {
         body: JSON.stringify({
           roomImage: uploadedImage,
           floorId: selectedFloor.id,
+          floorRegion: floorRegion || undefined,
         }),
       });
 
@@ -65,6 +96,9 @@ export default function RaumplanerApp() {
       }
 
       if (data.demo) {
+        setDemoWarning(data.warning);
+      }
+      if (data.beta) {
         setDemoWarning(data.warning);
       }
 
@@ -101,7 +135,6 @@ export default function RaumplanerApp() {
               alt="Parkettbörse Augsburg — Logo"
               className="h-[50px] w-auto object-contain"
               onError={(e) => {
-                // Hide broken image if logo not provided
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
@@ -192,18 +225,34 @@ export default function RaumplanerApp() {
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-5 pb-5 pt-14">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            <span
-                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                              style={{ backgroundColor: "var(--green)", color: "var(--white)" }}
-                            >
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span className="text-sm font-medium text-white">
-                              <span className="hidden sm:inline">Ihr Raum wurde analysiert — Wählen Sie rechts einen Bodenbelag aus →</span>
-                              <span className="sm:hidden">Raum analysiert</span>
-                            </span>
+                            {analyzing ? (
+                              <>
+                                <div
+                                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-t-transparent"
+                                  style={{ borderColor: "var(--oak-pale)", borderTopColor: "var(--white)" }}
+                                />
+                                <span className="text-sm font-medium text-white">
+                                  Raum wird analysiert...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                                  style={{ backgroundColor: "var(--green)", color: "var(--white)" }}
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                                <span className="text-sm font-medium text-white">
+                                  <span className="hidden sm:inline">
+                                    Boden erkannt — Wählen Sie rechts einen Bodenbelag aus →
+                                  </span>
+                                  <span className="sm:hidden">Boden erkannt</span>
+                                </span>
+                              </>
+                            )}
                           </div>
                           <button
                             onClick={handleReset}
@@ -230,7 +279,6 @@ export default function RaumplanerApp() {
                 {/* ── Step 3: Processing ── */}
                 {currentStep === 3 && uploadedImage && (
                   <div className="animate-fadeIn">
-                    {/* Error state */}
                     {error ? (
                       <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
                         <img
@@ -271,7 +319,6 @@ export default function RaumplanerApp() {
                         </div>
                       </div>
                     ) : (
-                      /* Processing with overlay */
                       <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
                         <img
                           src={uploadedImage}
@@ -288,7 +335,6 @@ export default function RaumplanerApp() {
                 {/* ── Step 4: Result ── */}
                 {currentStep === 4 && uploadedImage && resultImage && (
                   <div className="animate-fadeIn">
-                    {/* Demo warning */}
                     {demoWarning && (
                       <div
                         className="mb-4 rounded-lg px-4 py-2.5 text-sm"
@@ -303,7 +349,6 @@ export default function RaumplanerApp() {
                       afterImage={resultImage}
                     />
 
-                    {/* Action buttons */}
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                       <button
                         onClick={() => setCurrentStep(5)}
@@ -353,7 +398,6 @@ export default function RaumplanerApp() {
 
             {/* ════════ Right: Sidebar (35%) ════════ */}
             <div ref={sidebarRef} className="flex-[35] lg:max-h-[650px]">
-              {/* Step 1: Greyed-out prompt */}
               {currentStep === 1 && (
                 <div className="flex h-full flex-col items-center justify-center p-6 text-center opacity-60">
                   <div
@@ -373,7 +417,6 @@ export default function RaumplanerApp() {
                 </div>
               )}
 
-              {/* Step 2: Catalog */}
               {currentStep === 2 && (
                 <FloorCatalog
                   selectedFloor={selectedFloor}
@@ -382,7 +425,6 @@ export default function RaumplanerApp() {
                 />
               )}
 
-              {/* Step 3: Sidebar locked with info */}
               {currentStep === 3 && (
                 <div className="pointer-events-none opacity-50">
                   <FloorCatalog
@@ -393,7 +435,6 @@ export default function RaumplanerApp() {
                 </div>
               )}
 
-              {/* Step 4: Catalog still usable */}
               {currentStep === 4 && (
                 <FloorCatalog
                   selectedFloor={selectedFloor}
@@ -407,7 +448,6 @@ export default function RaumplanerApp() {
                 />
               )}
 
-              {/* Step 5: Product detail sidebar — show result thumbnail */}
               {currentStep === 5 && selectedFloor && resultImage && (
                 <div className="flex h-full flex-col p-5 sm:p-6">
                   <h3
@@ -446,7 +486,6 @@ export default function RaumplanerApp() {
         </div>
       </main>
 
-      {/* Fade animation */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(6px); }
