@@ -60,6 +60,7 @@ export async function GET() {
       await put(PRODUCTS_BLOB, JSON.stringify(products), {
         access: "public",
         addRandomSuffix: false,
+        allowOverwrite: true,
         contentType: "application/json",
       });
     }

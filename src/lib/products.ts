@@ -92,6 +92,7 @@ export async function saveProducts(products: FloorProduct[]): Promise<void> {
     const result = await put(BLOB_PATH, JSON.stringify(products, null, 2), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: "application/json",
     });
     console.log("[products] Saved to:", result.url);

@@ -121,6 +121,7 @@ export async function saveProducts(products: any[]): Promise<void> {
   await put(BLOB_KEY, JSON.stringify(products), {
     access: "public",
     addRandomSuffix: false,
+      allowOverwrite: true,
     contentType: "application/json",
   });
 }
