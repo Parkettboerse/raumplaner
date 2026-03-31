@@ -15,21 +15,23 @@ export default function StepIndicator({ currentStep }: { currentStep: number }) 
         return (
           <div key={step.num} className="flex items-center">
             {i > 0 && (
-              <div className="h-px w-6 sm:w-8" style={{ backgroundColor: done ? "var(--black)" : "var(--grey-border)" }} />
+              <div className="h-[2px] w-7 sm:w-10 rounded-full" style={{ backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "var(--grey-border)" }} />
             )}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-center gap-1">
               <div
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all"
                 style={{
-                  backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "var(--grey-bg)",
+                  backgroundColor: done ? "var(--black)" : active ? "var(--gold)" : "var(--white)",
                   color: done || active ? "var(--white)" : "var(--grey-light)",
+                  border: !done && !active ? "2px solid var(--grey-border)" : "none",
+                  boxShadow: active ? "0 2px 10px var(--gold-glow)" : "none",
                 }}
               >
                 {done ? (
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                 ) : step.num}
               </div>
-              <span className="hidden text-[10px] font-medium sm:block" style={{ color: done ? "var(--black)" : active ? "var(--gold)" : "var(--grey-light)" }}>
+              <span className="hidden text-[11px] font-medium sm:block" style={{ color: done ? "var(--black)" : active ? "var(--gold)" : "var(--grey-light)" }}>
                 {step.label}
               </span>
             </div>

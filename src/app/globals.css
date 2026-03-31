@@ -4,19 +4,20 @@
 
 :root {
   --gold: #C8A415;
-  --gold-light: #E8D56A;
+  --gold-hover: #D4B84A;
   --gold-pale: #FBF7E8;
+  --gold-glow: rgba(200, 164, 21, 0.25);
   --black: #1A1A1A;
   --grey: #666666;
   --grey-light: #999999;
-  --grey-border: #E5E5E5;
-  --grey-bg: #F5F5F5;
+  --grey-border: #E8E6E1;
+  --grey-bg: #F8F7F5;
   --green: #27AE60;
   --white: #FFFFFF;
 }
 
 body {
-  background-color: var(--white);
+  background-color: var(--grey-bg);
   color: var(--black);
   font-size: 15px;
 }
