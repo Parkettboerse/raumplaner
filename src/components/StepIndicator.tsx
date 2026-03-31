@@ -6,9 +6,8 @@ interface StepIndicatorProps {
 
 const STEPS = [
   { num: 1, label: "Foto" },
-  { num: 2, label: "Markieren" },
-  { num: 3, label: "Boden" },
-  { num: 4, label: "Vorschau" },
+  { num: 2, label: "Boden" },
+  { num: 3, label: "Vorschau" },
 ];
 
 export default function StepIndicator({ currentStep }: StepIndicatorProps) {
