@@ -49,14 +49,18 @@ export async function POST(request: NextRequest) {
 
   // ── Build prompt ──
   let prompt =
-    `Replace the floor in this room photo with ${product.name} (${product.detail}). ` +
-    `Keep all furniture, walls, lighting, and room geometry exactly as they are. ` +
-    `The new floor should look photorealistic with correct perspective, appropriate shadows, and natural light reflections. ` +
-    `The floor material is: ${product.detail}. ` +
-    `Make sure the new floor covers exactly the same area as the original floor.`;
+    `This is a photo of a room. Replace ONLY the floor/ground surface with ${product.name} (${product.detail}). ` +
+    `\n\nCRITICAL RULES:\n` +
+    `- Do NOT change, move, remove, or alter ANY objects, furniture, walls, doors, windows, or decorations\n` +
+    `- Do NOT change the lighting, shadows on walls, or room geometry\n` +
+    `- Do NOT change the camera angle or perspective\n` +
+    `- ONLY the floor surface material should change\n` +
+    `- The new floor must have correct perspective matching the original photo\n` +
+    `- Keep every single detail of the room exactly the same except the floor\n` +
+    `- The new floor should be: ${product.detail}`;
 
   if (product.texture_url) {
-    prompt += ` The floor texture/pattern should match this reference material: ${product.name}.`;
+    prompt += `\n- The floor texture/pattern should match this reference material: ${product.name}`;
   }
 
   // ── Strip Base64 prefix if present ──
