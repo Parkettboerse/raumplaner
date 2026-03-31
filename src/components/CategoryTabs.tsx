@@ -15,16 +15,19 @@ const TABS: { value: Category; label: string }[] = [
 
 export default function CategoryTabs({ activeCategory, onCategoryChange }: Props) {
   return (
-    <div className="cat-bar">
-      {TABS.map((tab) => (
-        <button
-          key={tab.value}
-          onClick={() => onCategoryChange(tab.value)}
-          className={`cat${activeCategory === tab.value ? " on" : ""}`}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div style={{ display: "flex", gap: 6, padding: "14px 20px 0", overflowX: "auto", scrollbarWidth: "none" }}>
+      {TABS.map((tab) => {
+        const on = activeCategory === tab.value;
+        return (
+          <button key={tab.value} onClick={() => onCategoryChange(tab.value)} style={{
+            padding: "7px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+            cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all .15s",
+            background: on ? "#C8A415" : "transparent",
+            color: on ? "#0D0D0D" : "#888",
+            border: on ? "1.5px solid #C8A415" : "1.5px solid #333",
+          }}>{tab.label}</button>
+        );
+      })}
     </div>
   );
 }
