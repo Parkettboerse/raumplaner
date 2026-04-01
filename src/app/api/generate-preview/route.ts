@@ -105,21 +105,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
     }
 
-    // Resize output to match original aspect ratio
+    // Match output to original aspect ratio
     const originalBuffer = b64ToBuffer(roomImage);
     const originalMeta = await sharp(originalBuffer).metadata();
     const ow = originalMeta.width || 1024;
     const oh = originalMeta.height || 1024;
 
     const generatedBuffer = Buffer.from(b64, "base64");
-    const resizedBuffer = await sharp(generatedBuffer)
-      .resize(ow, oh, { fit: "cover", position: "center" })
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    const genMeta = await sharp(generatedBuffer).metadata();
+    const gw = genMeta.width || 1024;
+    const gh = genMeta.height || 1024;
 
-    const resizedB64 = resizedBuffer.toString("base64");
+    console.log("[generate-preview] Original:", ow, "x", oh, "Generated:", gw, "x", gh);
 
-    return NextResponse.json({ resultImage: `data:image/jpeg;base64,${resizedB64}` });
+    // Only resize if aspect ratios differ significantly
+    const origRatio = ow / oh;
+    const genRatio = gw / gh;
+
+    let finalB64 = b64;
+    if (Math.abs(origRatio - genRatio) > 0.1) {
+      const resizedBuffer = await sharp(generatedBuffer)
+        .resize(ow, oh, { fit: "cover", position: "center" })
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      finalB64 = resizedBuffer.toString("base64");
+      console.log("[generate-preview] Resized to match original:", ow, "x", oh);
+    }
+
+    return NextResponse.json({ resultImage: `data:image/jpeg;base64,${finalB64}` });
   } catch (err: any) {
     console.error("[generate-preview]", err?.message);
     const msg =
