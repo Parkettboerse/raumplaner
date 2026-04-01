@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       const texBuffer = b64ToBuffer(textureImage);
       const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
       images.push(texFile);
-      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
+      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     } else {
       prompt = `Lege in diesen Raum einen ${parts} Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     }
