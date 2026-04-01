@@ -120,6 +120,7 @@ export default function AdminPage() {
   // ─── Product Form ───
   const [form, setForm] = useState(emptyForm);
   const [textureFile, setTextureFile] = useState<File | null>(null);
+  const [currentTextureUrl, setCurrentTextureUrl] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -304,6 +305,7 @@ export default function AdminPage() {
         const fd = new FormData();
         fd.append("file", new File([compressed], `${productId}.jpg`, { type: "image/jpeg" }));
         fd.append("productId", productId);
+        if (currentTextureUrl) fd.append("oldTextureUrl", currentTextureUrl);
 
         const uploadRes = await fetchWithTimeout("/api/upload-texture", { method: "POST", body: fd });
         const uploadData = await uploadRes.json();
@@ -361,12 +363,14 @@ export default function AdminPage() {
       oberflaeche: product.oberflaeche || "",
     });
     setTextureFile(null);
+    setCurrentTextureUrl(product.texture_url || "");
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
   function resetForm() {
     setForm(emptyForm);
     setTextureFile(null);
+    setCurrentTextureUrl("");
     setEditingId(null);
   }
 
@@ -798,8 +802,20 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-600">
-                  Texturbild{editingId ? " (optional, ersetzt vorhandenes)" : ""}
+                  Texturbild{editingId ? " (neues Bild ersetzt vorhandenes)" : ""}
                 </label>
+                {editingId && currentTextureUrl && !textureFile && (
+                  <div className="mb-2 flex items-center gap-3">
+                    <img src={currentTextureUrl} alt="Aktuelle Textur" className="h-16 w-16 rounded-lg object-cover border border-gray-200" />
+                    <span className="text-xs text-gray-500">Aktuelles Bild</span>
+                  </div>
+                )}
+                {textureFile && (
+                  <div className="mb-2 flex items-center gap-3">
+                    <img src={URL.createObjectURL(textureFile)} alt="Neues Bild" className="h-16 w-16 rounded-lg object-cover border border-blue-300" />
+                    <span className="text-xs text-blue-600">Neues Bild ausgewählt</span>
+                  </div>
+                )}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
