@@ -203,7 +203,7 @@ export default function AdminPage() {
       console.log("[admin] Compressed to", compressed.size, "bytes");
 
       const fd = new FormData();
-      fd.append("file", new File([compressed], `${productId}.jpg`, { type: "image/jpeg" }));
+      fd.append("file", new File([compressed], `${productId}-${Date.now()}.jpg`, { type: "image/jpeg" }));
       fd.append("productId", productId);
 
       const res = await fetchWithTimeout("/api/upload-texture", { method: "POST", body: fd });
@@ -245,7 +245,7 @@ export default function AdminPage() {
         console.log("[admin] Compressed:", compressed.size, "bytes");
 
         const fd = new FormData();
-        fd.append("file", new File([compressed], `${productId}.jpg`, { type: "image/jpeg" }));
+        fd.append("file", new File([compressed], `${productId}-${Date.now()}.jpg`, { type: "image/jpeg" }));
         fd.append("productId", productId);
         if (currentTextureUrl) fd.append("oldTextureUrl", currentTextureUrl);
 
