@@ -140,20 +140,6 @@ export default function RaumplanerApp() {
                   onFloorSelect={setSelectedFloor}
                   onApply={handleApplyFloor}
                 />
-                {/* Direction selector */}
-                <div style={{ marginTop: 12, background: "#1A1A1A", border: "1px solid #2a2a2a", borderRadius: 16, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Verlegerichtung</div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {([["längs", "Längs"], ["quer", "Quer"], ["diagonal", "Diagonal"]] as const).map(([val, label]) => (
-                      <button key={val} onClick={() => setDirection(val)} style={{
-                        flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .15s",
-                        background: direction === val ? "#C8A415" : "transparent",
-                        color: direction === val ? "#0D0D0D" : "#888",
-                        border: direction === val ? "1.5px solid #C8A415" : "1.5px solid #333",
-                      }}>{label}</button>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
