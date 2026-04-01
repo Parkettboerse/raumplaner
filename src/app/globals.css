@@ -23,7 +23,7 @@
 body {
   margin: 0; padding: 0;
   font-family: 'Outfit', var(--font-outfit), sans-serif;
-  background: var(--white);
+  background: var(--bg);
   color: var(--black);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;

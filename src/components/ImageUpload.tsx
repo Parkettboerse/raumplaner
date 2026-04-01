@@ -142,7 +142,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
         </div>
 
         {/* Transition gradient */}
-        <div className="h-16" style={{background:"linear-gradient(to bottom, var(--black), var(--white))"}} />
+        <div className="h-16" style={{background:"linear-gradient(to bottom, var(--black), #F5F1EB)"}} />
       </div>
 
       {error && <p className="mx-auto mt-4 max-w-3xl rounded-xl bg-red-50 px-5 py-3 text-sm text-red-600">{error}</p>}
