@@ -117,7 +117,7 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
             <style>{`
               .upload-zone:hover { border-color: var(--gold) !important; background: rgba(200,164,21,0.08) !important; transform: translateY(-4px); box-shadow: 0 12px 40px var(--gold-glow) !important; }
             `}</style>
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/heic,.heic" capture="environment" onChange={(e:ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(f)processFile(f);e.target.value="";}} className="hidden" />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/heic,.heic" onChange={(e:ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(f)processFile(f);e.target.value="";}} className="hidden" />
 
             <div className="animate-float flex h-16 w-16 items-center justify-center rounded-full" style={{background:"linear-gradient(135deg,#C8A415,#D4B84A)",boxShadow:"0 8px 32px var(--gold-glow)"}}>
               <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
