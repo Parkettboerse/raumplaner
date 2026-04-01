@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const genRatio = gw / gh;
 
     let finalB64 = b64;
-    if (Math.abs(origRatio - genRatio) > 0.1) {
+    if (true) {
       const resizedBuffer = await sharp(generatedBuffer)
         .resize(ow, oh, { fit: "fill" })
         .jpeg({ quality: 90 })

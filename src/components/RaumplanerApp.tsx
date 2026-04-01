@@ -18,7 +18,7 @@ const LOADING_TEXTS = [
 function LoadingText({ name }: { name: string }) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => setIdx((i) => (i + 1) % LOADING_TEXTS.length), 3000);
+    const timer = setInterval(() => setIdx((i) => (i + 1) % LOADING_TEXTS.length), 5000);
     return () => clearInterval(timer);
   }, []);
   return (
