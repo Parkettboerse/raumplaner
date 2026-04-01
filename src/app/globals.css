@@ -9,13 +9,13 @@
   --gold-pale: rgba(200,164,21,0.08);
   --black: #1A1A1A;
   --dark: #1A1A1A;
-  --card: #FFFFFF;
+  --card: #2A2A2A;
   --white: #FFFFFF;
-  --grey: #A09A90;
-  --grey-light: #A09A90;
-  --grey-border: #E8E4DC;
-  --grey-bg: #F5F1EB;
-  --bg: #F5F1EB;
+  --grey: #888;
+  --grey-light: #888;
+  --grey-border: #333;
+  --grey-bg: #222222;
+  --bg: #1A1A1A;
   --green: #27AE60;
   --radius: 20px;
 }
