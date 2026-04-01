@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     let finalB64 = b64;
     if (Math.abs(origRatio - genRatio) > 0.1) {
       const resizedBuffer = await sharp(generatedBuffer)
-        .resize(ow, oh, { fit: "cover", position: "center" })
+        .resize(ow, oh, { fit: "fill" })
         .jpeg({ quality: 90 })
         .toBuffer();
       finalB64 = resizedBuffer.toString("base64");
