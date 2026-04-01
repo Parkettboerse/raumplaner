@@ -74,8 +74,10 @@ export async function POST(request: NextRequest) {
         : null,
     ].filter(Boolean).join(", ");
 
-    const directionText = direction === "quer" ? " Die Dielen/Planken QUER zum Raum verlegen."
-      : direction === "diagonal" ? " Die Dielen/Planken DIAGONAL verlegen."
+    const directionText = direction === "quer"
+      ? " WICHTIG: Die Dielen/Planken müssen QUER zur Längsrichtung des Raumes verlegt werden, also von links nach rechts."
+      : direction === "diagonal"
+      ? " WICHTIG: Die Dielen/Planken müssen DIAGONAL im 45-Grad-Winkel verlegt werden."
       : "";
 
     let prompt: string;
