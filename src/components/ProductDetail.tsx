@@ -16,7 +16,7 @@ export default function ProductDetail({ product, onBack }: Props) {
           <img src={product.texture_url} alt={product.name} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2C2820" }}>{product.name}</h3>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1A1A1A" }}>{product.name}</h3>
           <p style={{ fontSize: 13, color: "#A09A90", marginTop: 2 }}>{product.detail}</p>
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#C8A415" }}>{product.price}</div>
@@ -24,7 +24,7 @@ export default function ProductDetail({ product, onBack }: Props) {
 
       <a href={product.shop_url} target="_blank" rel="noopener noreferrer" style={{
         display: "block", width: "100%", padding: 15, borderRadius: 14, border: "none",
-        background: "#C8A415", color: "#2C2820", fontSize: 15, fontWeight: 700,
+        background: "#C8A415", color: "#1A1A1A", fontSize: 15, fontWeight: 700,
         textAlign: "center", textDecoration: "none", marginTop: 16, cursor: "pointer",
       }}>
         Jetzt auf parkettboerse.net bestellen →
@@ -38,7 +38,7 @@ export default function ProductDetail({ product, onBack }: Props) {
           Fragen? <a href="tel:+498214552680" style={{ fontWeight: 600, color: "#C8A415", textDecoration: "underline" }}>0821 455 268 0</a> oder <a href="mailto:augsburg@parkettboerse.net" style={{ fontWeight: 600, color: "#C8A415", textDecoration: "underline" }}>augsburg@parkettboerse.net</a>
         </div>
         <div style={{ border: "1px solid #E8E4DC", borderRadius: 14, padding: "14px 18px", fontSize: 14, color: "#A09A90" }}>
-          Ausstellung: <strong style={{ color: "#2C2820" }}>Eichleitnerstraße 5, 86199 Augsburg</strong> — 800m²
+          Ausstellung: <strong style={{ color: "#1A1A1A" }}>Eichleitnerstraße 5, 86199 Augsburg</strong> — 800m²
         </div>
       </div>
     </div>

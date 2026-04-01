@@ -23,7 +23,7 @@ export default function StepIndicator({ currentStep }: { currentStep: number }) 
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, fontWeight: 700,
                 background: done ? "#C8A415" : active ? "#C8A415" : "#D4CFC6",
-                color: done ? "#2C2820" : active ? "#2C2820" : "#A09A90",
+                color: done ? "#1A1A1A" : active ? "#1A1A1A" : "#A09A90",
                 boxShadow: active ? "0 4px 14px rgba(200,164,21,0.35)" : "none",
                 transition: "all .3s",
               }}>

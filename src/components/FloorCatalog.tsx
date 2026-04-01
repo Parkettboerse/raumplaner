@@ -22,7 +22,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#2C2820" }}>Bodenbeläge</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1A1A1A" }}>Bodenbeläge</h2>
         <p style={{ fontSize: 13, color: "#A09A90", marginTop: 3 }}>Aus unserem Sortiment</p>
       </div>
 
@@ -50,13 +50,13 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
             )}
             <div>
               <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: "#C8A415", fontWeight: 600 }}>Ausgewählt</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1, color: "#2C2820" }}>{selectedFloor.name} — {selectedFloor.price}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1, color: "#1A1A1A" }}>{selectedFloor.name} — {selectedFloor.price}</div>
             </div>
           </div>
         )}
         <button onClick={onApply} disabled={!selectedFloor} style={{
           width: "100%", padding: 15, borderRadius: 14, border: "none",
-          background: selectedFloor ? "#C8A415" : "#D4CFC6", color: selectedFloor ? "#2C2820" : "#666",
+          background: selectedFloor ? "#C8A415" : "#D4CFC6", color: selectedFloor ? "#1A1A1A" : "#666",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: selectedFloor ? "pointer" : "not-allowed",
           transition: "all .25s", opacity: selectedFloor ? 1 : 0.5,
         }}>Boden anwenden →</button>
