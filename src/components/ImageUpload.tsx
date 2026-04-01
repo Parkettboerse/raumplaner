@@ -7,7 +7,7 @@ const MAX_SIZE = 20 * 1024 * 1024;
 
 async function compressFile(file: Blob): Promise<string> {
   const bitmap = await createImageBitmap(file);
-  const MAX = 768;
+  const MAX = 1024;
   let cw = bitmap.width, ch = bitmap.height;
   if (cw > MAX || ch > MAX) {
     if (cw > ch) { ch = Math.round(MAX * ch / cw); cw = MAX; }
