@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const ext = file.type === "image/png" ? "png" : "jpg";
     const safeName = productId ? slugify(productId) : String(Date.now());
-    const blobName = `textures/${safeName}.${ext}`;
+    const timestamp = Date.now();
+    const blobName = `textures/${safeName}-${timestamp}.${ext}`;
 
     const blob = await put(blobName, buffer, {
       access: "public",
