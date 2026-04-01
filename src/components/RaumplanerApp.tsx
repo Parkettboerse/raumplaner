@@ -99,7 +99,7 @@ export default function RaumplanerApp() {
   const showGrid = (currentStep === 2 || currentStep === 3) && uploadedImage;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0D0D0D", fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#5D5B5B", fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ═══ STEP 1 ═══ */}
       {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
@@ -131,7 +131,7 @@ export default function RaumplanerApp() {
                   /* Error in place of image */
                   <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", background: "#1A1A1A", minHeight: 250, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40 }}>
                     <p style={{ fontSize: 15, color: "#ccc", textAlign: "center" }}>{error}</p>
-                    <button onClick={handleApplyFloor} style={{ marginTop: 16, padding: "12px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
+                    <button onClick={handleApplyFloor} style={{ marginTop: 16, padding: "12px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#5D5B5B", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
                   </div>
                 ) : resultImage ? (
                   /* Before/After slider + actions below */
@@ -152,8 +152,8 @@ export default function RaumplanerApp() {
                     )}
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-                      <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
-                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#5D5B5B", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
+                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#5D5B5B", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         {canShare && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
                         {canShare ? "Teilen" : "Bild speichern"}
                       </button>

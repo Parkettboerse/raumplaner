@@ -18,7 +18,7 @@ export default function FloorCard({ product, selected, onSelect }: Props) {
           <div style={{ width: "100%", height: "100%", background: "#222" }} />
         )}
         {selected && (
-          <div style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: "#C8A415", color: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800 }}>✓</div>
+          <div style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: "#C8A415", color: "#5D5B5B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800 }}>✓</div>
         )}
       </div>
       <div style={{ padding: "9px 11px" }}>

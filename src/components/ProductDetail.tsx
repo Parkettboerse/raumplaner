@@ -24,7 +24,7 @@ export default function ProductDetail({ product, onBack }: Props) {
 
       <a href={product.shop_url} target="_blank" rel="noopener noreferrer" style={{
         display: "block", width: "100%", padding: 15, borderRadius: 14, border: "none",
-        background: "#C8A415", color: "#0D0D0D", fontSize: 15, fontWeight: 700,
+        background: "#C8A415", color: "#5D5B5B", fontSize: 15, fontWeight: 700,
         textAlign: "center", textDecoration: "none", marginTop: 16, cursor: "pointer",
       }}>
         Jetzt auf parkettboerse.net bestellen →

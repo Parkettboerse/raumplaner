@@ -23,7 +23,7 @@ export default function CategoryTabs({ activeCategory, onCategoryChange }: Props
             padding: "7px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600,
             cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all .15s",
             background: on ? "#C8A415" : "transparent",
-            color: on ? "#0D0D0D" : "#888",
+            color: on ? "#5D5B5B" : "#888",
             border: on ? "1.5px solid #C8A415" : "1.5px solid #333",
           }}>{tab.label}</button>
         );

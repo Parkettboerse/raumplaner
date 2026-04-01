@@ -56,7 +56,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
         )}
         <button onClick={onApply} disabled={!selectedFloor} style={{
           width: "100%", padding: 15, borderRadius: 14, border: "none",
-          background: selectedFloor ? "#C8A415" : "#333", color: selectedFloor ? "#0D0D0D" : "#666",
+          background: selectedFloor ? "#C8A415" : "#333", color: selectedFloor ? "#5D5B5B" : "#666",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: selectedFloor ? "pointer" : "not-allowed",
           transition: "all .25s", opacity: selectedFloor ? 1 : 0.5,
         }}>Boden anwenden →</button>
