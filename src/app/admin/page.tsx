@@ -236,66 +236,8 @@ export default function AdminPage() {
 
     const productId = editingId || `${form.category}-${slugify(form.name)}`;
 
-    // STEP 1: Save product data first (without image)
-    try {
-      if (editingId) {
-        const body: Record<string, string> = {
-          name: form.name,
-          category: form.category,
-          detail: form.detail,
-          price: form.price,
-          shop_url: form.shop_url,
-          format: form.format,
-          dimensions: form.dimensions,
-          verlegemuster: form.verlegemuster,
-          oberflaeche: form.oberflaeche,
-        };
-        const res = await fetchWithTimeout(`/api/products/${editingId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          flash(data.error || "Fehler beim Speichern", "err");
-          setSubmitting(false);
-          return;
-        }
-      } else {
-        const product: FloorProduct = {
-          id: productId,
-          name: form.name,
-          category: form.category,
-          detail: form.detail,
-          price: form.price,
-          texture_url: "",
-          shop_url: form.shop_url,
-          format: form.format || undefined,
-          dimensions: form.dimensions || undefined,
-          verlegemuster: form.verlegemuster || undefined,
-          oberflaeche: form.oberflaeche || undefined,
-        };
-        const res = await fetchWithTimeout("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(product),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          flash(data.error || "Fehler beim Speichern", "err");
-          setSubmitting(false);
-          return;
-        }
-      }
-      console.log("[admin] Product saved:", productId);
-    } catch (err: any) {
-      console.error("[admin] Product save failed:", err);
-      flash(err?.message === "TIMEOUT" ? "Speichern — Timeout" : "Netzwerkfehler beim Speichern", "err");
-      setSubmitting(false);
-      return;
-    }
-
-    // STEP 2: Upload texture image (if provided) — product is already saved
+    // STEP 1: Upload texture first (if provided) so we have the URL for the product save
+    let newTextureUrl = "";
     if (textureFile) {
       try {
         console.log("[admin] Compressing texture...");
@@ -309,22 +251,73 @@ export default function AdminPage() {
 
         const uploadRes = await fetchWithTimeout("/api/upload-texture", { method: "POST", body: fd });
         const uploadData = await uploadRes.json();
-        if (uploadRes.ok) {
-          flash("Produkt gespeichert + Bild hochgeladen");
+        if (uploadRes.ok && uploadData.url) {
+          newTextureUrl = uploadData.url;
+          console.log("[admin] Texture uploaded:", newTextureUrl);
         } else {
           console.error("[admin] Image upload error:", uploadData);
-          flash("Produkt gespeichert, aber Bild-Upload fehlgeschlagen: " + (uploadData.error || ""), "err");
+          flash("Bild-Upload fehlgeschlagen: " + (uploadData.error || ""), "err");
         }
       } catch (err: any) {
         console.error("[admin] Image upload failed:", err);
         flash(
-          "Produkt gespeichert, aber Bild-Upload fehlgeschlagen" +
+          "Bild-Upload fehlgeschlagen" +
             (err?.message === "TIMEOUT" ? " (Timeout)" : ""),
           "err"
         );
       }
-    } else {
-      flash(editingId ? "Produkt aktualisiert" : "Produkt hinzugefügt");
+    }
+
+    // STEP 2: Save product data (with texture_url if we just uploaded one)
+    try {
+      if (editingId) {
+        const body: Record<string, string> = {
+          name: form.name,
+          category: form.category,
+          detail: form.detail,
+          price: form.price,
+          shop_url: form.shop_url,
+          format: form.format,
+          dimensions: form.dimensions,
+          verlegemuster: form.verlegemuster,
+          oberflaeche: form.oberflaeche,
+        };
+        if (newTextureUrl) body.texture_url = newTextureUrl;
+        const res = await fetchWithTimeout(`/api/products/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) { flash(data.error || "Fehler beim Speichern", "err"); setSubmitting(false); return; }
+      } else {
+        const product: FloorProduct = {
+          id: productId,
+          name: form.name,
+          category: form.category,
+          detail: form.detail,
+          price: form.price,
+          texture_url: newTextureUrl,
+          shop_url: form.shop_url,
+          format: form.format || undefined,
+          dimensions: form.dimensions || undefined,
+          verlegemuster: form.verlegemuster || undefined,
+          oberflaeche: form.oberflaeche || undefined,
+        };
+        const res = await fetchWithTimeout("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(product),
+        });
+        const data = await res.json();
+        if (!res.ok) { flash(data.error || "Fehler beim Speichern", "err"); setSubmitting(false); return; }
+      }
+      flash(newTextureUrl ? "Produkt gespeichert + Bild aktualisiert" : (editingId ? "Produkt aktualisiert" : "Produkt hinzugefügt"));
+    } catch (err: any) {
+      console.error("[admin] Save failed:", err);
+      flash(err?.message === "TIMEOUT" ? "Speichern — Timeout" : "Netzwerkfehler", "err");
+      setSubmitting(false);
+      return;
     }
 
     resetForm();
