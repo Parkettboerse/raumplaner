@@ -120,15 +120,16 @@ export default function BeforeAfterSlider({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={50}
-      className="relative h-[260px] select-none overflow-hidden sm:h-[400px]"
+      className="relative select-none overflow-hidden"
       style={{ cursor: "col-resize", borderRadius: "var(--radius)", boxShadow: "0 16px 48px rgba(0,0,0,0.12)" }}
     >
-      {/* After image (bottom layer — full, visible on the right) */}
+      {/* After image (bottom layer — sets natural height) */}
       <img
         src={afterImage}
         alt="Nachher"
         draggable={false}
-        className="absolute inset-0 z-[1] h-full w-full object-cover"
+        className="relative z-[1] w-full"
+        style={{ display: "block", height: "auto" }}
       />
 
       {/* Before image (top layer, clipped from left to slider position) */}
@@ -141,7 +142,8 @@ export default function BeforeAfterSlider({
           src={beforeImage}
           alt="Vorher"
           draggable={false}
-          className="h-full w-full object-cover"
+          className="w-full"
+          style={{ display: "block", height: "auto" }}
         />
       </div>
 
