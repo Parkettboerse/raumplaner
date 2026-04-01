@@ -37,7 +37,7 @@ body {
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 var(--gold-glow); } 50% { box-shadow: 0 0 0 12px transparent; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes loadProgress { from { width: 0%; } to { width: 90%; } }
+@keyframes loadProgress { 0% { width: 0%; } 100% { width: 92%; } }
 @keyframes shine { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
 .animate-fadeUp { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) both; }

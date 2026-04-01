@@ -8,6 +8,27 @@ import FloorCatalog from "./FloorCatalog";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import ProductDetail from "./ProductDetail";
 
+const LOADING_TEXTS = [
+  "Raum wird analysiert...",
+  "Boden wird angepasst...",
+  "Perspektive wird berechnet...",
+  "Fast fertig...",
+];
+
+function LoadingText({ name }: { name: string }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setIdx((i) => (i + 1) % LOADING_TEXTS.length), 3000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <>
+      <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 6, transition: "opacity .3s" }}>{LOADING_TEXTS[idx]}</h3>
+      <p style={{ fontSize: 13, color: "#C8A415" }}>{name}</p>
+    </>
+  );
+}
+
 export default function RaumplanerApp() {
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -95,15 +116,16 @@ export default function RaumplanerApp() {
               {/* LEFT: Image / Slider / Spinner */}
               <div>
                 {generating ? (
-                  /* Loading spinner in place of image */
-                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", background: "#1A1A1A", minHeight: 350, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                    <div style={{ width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 24 }} />
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>KI generiert Vorschau</h3>
-                    <p style={{ fontSize: 14, color: "#888" }}>{selectedFloor?.name}</p>
-                    <div style={{ marginTop: 20, height: 3, background: "#333", borderRadius: 2, width: 180, overflow: "hidden" }}>
-                      <div style={{ height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 15s ease-out forwards" }} />
+                  /* Loading with background image + rotating text */
+                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", position: "relative" }}>
+                    <img src={uploadedImage} alt="" style={{ width: "100%", display: "block", filter: "blur(4px) brightness(0.3)", opacity: 0.6 }} />
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                      <div style={{ width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 20 }} />
+                      <LoadingText name={selectedFloor?.name || ""} />
+                      <div style={{ marginTop: 20, height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, width: 200, overflow: "hidden" }}>
+                        <div style={{ height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 20s ease-out forwards" }} />
+                      </div>
                     </div>
-                    <p style={{ fontSize: 12, color: "#555", marginTop: 12 }}>10–20 Sekunden</p>
                   </div>
                 ) : error ? (
                   /* Error in place of image */
