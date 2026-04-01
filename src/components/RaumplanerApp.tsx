@@ -18,7 +18,10 @@ export default function RaumplanerApp() {
   const [products, setProducts] = useState<FloorProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [direction, setDirection] = useState<"längs" | "quer" | "diagonal">("längs");
+  const [canShare, setCanShare] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setCanShare(typeof navigator !== "undefined" && !!navigator.share); }, []);
 
   useEffect(() => {
     fetch("/api/products").then((r) => r.json())
@@ -128,7 +131,10 @@ export default function RaumplanerApp() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
                       <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
-                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Bild speichern</button>
+                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#0D0D0D", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                        {canShare && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
+                        {canShare ? "Teilen" : "Bild speichern"}
+                      </button>
                     </div>
                   </div>
                 ) : (
