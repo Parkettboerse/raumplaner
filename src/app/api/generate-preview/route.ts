@@ -105,7 +105,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Kein Bild generiert." }, { status: 500 });
     }
 
-    return NextResponse.json({ resultImage: `data:image/png;base64,${b64}` });
+    // Resize output to match original aspect ratio
+    const originalBuffer = b64ToBuffer(roomImage);
+    const originalMeta = await sharp(originalBuffer).metadata();
+    const ow = originalMeta.width || 1024;
+    const oh = originalMeta.height || 1024;
+
+    const generatedBuffer = Buffer.from(b64, "base64");
+    const resizedBuffer = await sharp(generatedBuffer)
+      .resize(ow, oh, { fit: "cover", position: "center" })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    const resizedB64 = resizedBuffer.toString("base64");
+
+    return NextResponse.json({ resultImage: `data:image/jpeg;base64,${resizedB64}` });
   } catch (err: any) {
     console.error("[generate-preview]", err?.message);
     const msg =
