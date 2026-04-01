@@ -4,7 +4,9 @@ import { getProducts, saveProducts } from "@/lib/blob-products";
 export async function GET() {
   try {
     const products = await getProducts();
-    return NextResponse.json(products);
+    return NextResponse.json(products, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error: any) {
     console.error("GET products error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
