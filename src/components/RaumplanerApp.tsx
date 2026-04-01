@@ -50,9 +50,12 @@ export default function RaumplanerApp() {
 
   function handleDownload() {
     if (!resultImage) return;
-    const a = document.createElement("a"); a.href = resultImage;
-    a.download = `raumvorschau-${selectedFloor?.name?.toLowerCase().replace(/\s+/g, "-") || "boden"}.jpg`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    const link = document.createElement("a");
+    link.href = resultImage;
+    link.download = "parkettboerse-raumplaner.jpg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   // Steps 2 and 3 share the same two-column layout
