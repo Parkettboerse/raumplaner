@@ -35,12 +35,12 @@ async function detectSize(dataUrl: string): Promise<"1024x1024" | "1536x1024" | 
 }
 
 export async function POST(request: NextRequest) {
-  let body: { roomImage?: string; floorId?: string; textureImage?: string };
+  let body: { roomImage?: string; floorId?: string; textureImage?: string; direction?: string };
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Ungültiger Request" }, { status: 400 });
   }
 
-  const { roomImage, floorId, textureImage } = body;
+  const { roomImage, floorId, textureImage, direction } = body;
   if (!roomImage || !floorId) {
     return NextResponse.json({ error: "roomImage und floorId erforderlich" }, { status: 400 });
   }
@@ -74,15 +74,19 @@ export async function POST(request: NextRequest) {
         : null,
     ].filter(Boolean).join(", ");
 
+    const directionText = direction === "quer" ? " Die Dielen/Planken QUER zum Raum verlegen."
+      : direction === "diagonal" ? " Die Dielen/Planken DIAGONAL verlegen."
+      : "";
+
     let prompt: string;
 
     if (textureImage) {
       const texBuffer = b64ToBuffer(textureImage);
       const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
       images.push(texFile);
-      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
+      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild.${directionText} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     } else {
-      prompt = `Lege in diesen Raum einen ${parts} Boden. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
+      prompt = `Lege in diesen Raum einen ${parts} Boden.${directionText} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     }
 
     const result = await (openai.images.edit as any)({
