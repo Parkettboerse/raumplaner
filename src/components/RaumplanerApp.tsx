@@ -49,14 +49,26 @@ export default function RaumplanerApp() {
 
   function handleApplyFloor() { if (selectedFloor) generatePreview(selectedFloor); }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!resultImage) return;
-    const link = document.createElement("a");
-    link.href = resultImage;
-    link.download = "parkettboerse-raumplaner.jpg";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      if (navigator.share && navigator.canShare) {
+        const response = await fetch(resultImage);
+        const blob = await response.blob();
+        const file = new File([blob], "parkettboerse-raumplaner.jpg", { type: "image/jpeg" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Parkettbörse Raumplaner" });
+          return;
+        }
+      }
+      const newTab = window.open();
+      if (newTab) {
+        newTab.document.write(`<img src="${resultImage}" style="max-width:100%;height:auto;">`);
+        newTab.document.title = "Parkettbörse Raumplaner - Bild speichern";
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+    }
   }
 
   // Steps 2 and 3 share the same two-column layout
