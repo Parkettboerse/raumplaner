@@ -23,7 +23,7 @@ function LoadingText({ name }: { name: string }) {
   }, []);
   return (
     <>
-      <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 6, transition: "opacity .3s" }}>{LOADING_TEXTS[idx]}</h3>
+      <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF", marginBottom: 6, transition: "opacity .3s" }}>{LOADING_TEXTS[idx]}</h3>
       <p style={{ fontSize: 13, color: "#C8A415" }}>{name}</p>
     </>
   );
@@ -99,14 +99,14 @@ export default function RaumplanerApp() {
   const showGrid = (currentStep === 2 || currentStep === 3) && uploadedImage;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#5D5B5B", fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#2C2820", fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ═══ STEP 1 ═══ */}
       {currentStep === 1 && <ImageUpload onImageUploaded={handleImageUploaded} />}
 
       {/* ═══ STEPS 2 & 3: Same grid layout ═══ */}
       {showGrid && (
-        <div style={{ animation: "fadeUp .4s ease" }}>
+        <div style={{ animation: "fadeUp .4s ease", background: "linear-gradient(#2C2820 0px, #F5F1EB 120px)", minHeight: "100vh" }}>
           <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}>
             <StepIndicator currentStep={currentStep} />
           </div>
@@ -117,10 +117,10 @@ export default function RaumplanerApp() {
               <div>
                 {generating ? (
                   /* Loading with background image + rotating text */
-                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", position: "relative" }}>
+                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #E8E4DC", position: "relative" }}>
                     <img src={uploadedImage} alt="" style={{ width: "100%", display: "block", filter: "blur(4px) brightness(0.3)", opacity: 0.6 }} />
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                      <div style={{ width: 52, height: 52, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 20 }} />
+                      <div style={{ width: 52, height: 52, border: "3px solid #D4CFC6", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 20 }} />
                       <LoadingText name={selectedFloor?.name || ""} />
                       <div style={{ marginTop: 20, height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, width: 200, overflow: "hidden" }}>
                         <div style={{ height: "100%", background: "#C8A415", borderRadius: 2, animation: "loadProgress 20s ease-out forwards" }} />
@@ -129,9 +129,9 @@ export default function RaumplanerApp() {
                   </div>
                 ) : error ? (
                   /* Error in place of image */
-                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #2a2a2a", background: "#1A1A1A", minHeight: 250, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40 }}>
-                    <p style={{ fontSize: 15, color: "#ccc", textAlign: "center" }}>{error}</p>
-                    <button onClick={handleApplyFloor} style={{ marginTop: 16, padding: "12px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#5D5B5B", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
+                  <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid #E8E4DC", background: "#F5F1EB", minHeight: 250, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 40 }}>
+                    <p style={{ fontSize: 15, color: "#A09A90", textAlign: "center" }}>{error}</p>
+                    <button onClick={handleApplyFloor} style={{ marginTop: 16, padding: "12px 24px", borderRadius: 14, border: "none", background: "#C8A415", color: "#2C2820", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Nochmal versuchen</button>
                   </div>
                 ) : resultImage ? (
                   /* Before/After slider + actions below */
@@ -139,21 +139,21 @@ export default function RaumplanerApp() {
                     <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
 
                     {selectedFloor && (
-                      <div style={{ marginTop: 16, padding: 16, background: "#1A1A1A", border: "1px solid #2a2a2a", borderRadius: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                      <div style={{ marginTop: 16, padding: 16, background: "#F5F1EB", border: "1px solid #E8E4DC", borderRadius: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                         {selectedFloor.texture_url && (
                           <img src={selectedFloor.texture_url} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{selectedFloor.name}</div>
-                          <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>{selectedFloor.detail}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "#2C2820" }}>{selectedFloor.name}</div>
+                          <div style={{ fontSize: 12, color: "#A09A90", marginTop: 1 }}>{selectedFloor.detail}</div>
                         </div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "#C8A415" }}>{selectedFloor.price}</div>
                       </div>
                     )}
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-                      <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#5D5B5B", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
-                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#5D5B5B", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#2C2820", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
+                      <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#fff", color: "#2C2820", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         {canShare && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
                         {canShare ? "Teilen" : "Bild speichern"}
                       </button>
@@ -161,11 +161,11 @@ export default function RaumplanerApp() {
                   </div>
                 ) : (
                   /* Original uploaded photo */
-                  <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", border: "1px solid #2a2a2a" }}>
+                  <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", border: "1px solid #E8E4DC" }}>
                     <img src={uploadedImage} alt="Ihr Raum" style={{ width: "100%", display: "block" }} />
                     <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "28px 24px 20px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 16, fontWeight: 600, color: "white" }}>Wählen Sie einen Bodenbelag</span>
-                      <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid #444", color: "#ccc", padding: "6px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Anderes Foto</button>
+                      <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "6px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Anderes Foto</button>
                     </div>
                   </div>
                 )}
@@ -189,7 +189,7 @@ export default function RaumplanerApp() {
 
       {/* ═══ STEP 4: Product Detail ═══ */}
       {currentStep === 4 && selectedFloor && (
-        <div style={{ animation: "fadeUp .4s ease" }}>
+        <div style={{ animation: "fadeUp .4s ease", background: "linear-gradient(#2C2820 0px, #F5F1EB 120px)", minHeight: "100vh" }}>
           <div style={{ padding: "20px 24px 16px", display: "flex", justifyContent: "center" }}><StepIndicator currentStep={3} /></div>
           <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 24px" }}>
             <ProductDetail product={selectedFloor} onBack={() => setCurrentStep(3)} />

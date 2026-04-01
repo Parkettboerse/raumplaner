@@ -23,8 +23,8 @@ export default function CategoryTabs({ activeCategory, onCategoryChange }: Props
             padding: "7px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600,
             cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all .15s",
             background: on ? "#C8A415" : "transparent",
-            color: on ? "#5D5B5B" : "#888",
-            border: on ? "1.5px solid #C8A415" : "1.5px solid #333",
+            color: on ? "#2C2820" : "#A09A90",
+            border: on ? "1.5px solid #C8A415" : "1.5px solid #D4CFC6",
           }}>{tab.label}</button>
         );
       })}

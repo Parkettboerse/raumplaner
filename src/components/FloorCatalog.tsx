@@ -20,10 +20,10 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
   const filtered = cat === "alle" ? products : products.filter((p) => p.category === cat);
 
   return (
-    <div style={{ background: "#1A1A1A", border: "1px solid #2a2a2a", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ background: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ padding: "20px 20px 0" }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Bodenbeläge</h2>
-        <p style={{ fontSize: 13, color: "#888", marginTop: 3 }}>Aus unserem Sortiment</p>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#2C2820" }}>Bodenbeläge</h2>
+        <p style={{ fontSize: 13, color: "#A09A90", marginTop: 3 }}>Aus unserem Sortiment</p>
       </div>
 
       <CategoryTabs activeCategory={cat} onCategoryChange={setCat} />
@@ -31,10 +31,10 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", maxHeight: 400, overflowY: "auto" }}>
         {loading ? (
           <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: "40px 0" }}>
-            <div style={{ width: 32, height: 32, border: "3px solid #333", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+            <div style={{ width: 32, height: 32, border: "3px solid #D4CFC6", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
           </div>
         ) : filtered.length === 0 ? (
-          <p style={{ gridColumn: "1/-1", textAlign: "center", padding: "40px 0", fontSize: 13, color: "#666" }}>Keine Produkte.</p>
+          <p style={{ gridColumn: "1/-1", textAlign: "center", padding: "40px 0", fontSize: 13, color: "#A09A90" }}>Keine Produkte.</p>
         ) : (
           filtered.map((p) => (
             <FloorCard key={p.id} product={p} selected={selectedFloor?.id === p.id} onSelect={onFloorSelect} />
@@ -42,7 +42,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
         )}
       </div>
 
-      <div style={{ padding: "16px 20px", borderTop: "1px solid #2a2a2a", marginTop: "auto" }}>
+      <div style={{ padding: "16px 20px", borderTop: "1px solid #E8E4DC", marginTop: "auto" }}>
         {selectedFloor && (
           <div style={{ padding: "10px 14px", background: "rgba(200,164,21,0.1)", borderRadius: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
             {selectedFloor.texture_url && (
@@ -50,13 +50,13 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
             )}
             <div>
               <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: "#C8A415", fontWeight: 600 }}>Ausgewählt</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1, color: "#fff" }}>{selectedFloor.name} — {selectedFloor.price}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1, color: "#2C2820" }}>{selectedFloor.name} — {selectedFloor.price}</div>
             </div>
           </div>
         )}
         <button onClick={onApply} disabled={!selectedFloor} style={{
           width: "100%", padding: 15, borderRadius: 14, border: "none",
-          background: selectedFloor ? "#C8A415" : "#333", color: selectedFloor ? "#5D5B5B" : "#666",
+          background: selectedFloor ? "#C8A415" : "#D4CFC6", color: selectedFloor ? "#2C2820" : "#666",
           fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: selectedFloor ? "pointer" : "not-allowed",
           transition: "all .25s", opacity: selectedFloor ? 1 : 0.5,
         }}>Boden anwenden →</button>

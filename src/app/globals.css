@@ -7,15 +7,15 @@
   --gold-hover: #B8940A;
   --gold-glow: rgba(200,164,21,0.35);
   --gold-pale: rgba(200,164,21,0.08);
-  --black: #5D5B5B;
-  --dark: #1A1A1A;
-  --card: #161616;
+  --black: #2C2820;
+  --dark: #2C2820;
+  --card: #FFFFFF;
   --white: #FFFFFF;
-  --grey: #6B6B6B;
-  --grey-light: #888;
-  --grey-border: #E5E5E5;
-  --grey-bg: #F5F5F3;
-  --bg: #FAFAF8;
+  --grey: #A09A90;
+  --grey-light: #A09A90;
+  --grey-border: #E8E4DC;
+  --grey-bg: #F5F1EB;
+  --bg: #F5F1EB;
   --green: #27AE60;
   --radius: 20px;
 }
