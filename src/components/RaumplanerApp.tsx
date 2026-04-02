@@ -40,6 +40,7 @@ export default function RaumplanerApp() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [direction, setDirection] = useState<"längs" | "quer" | "diagonal">("längs");
   const [canShare, setCanShare] = useState(false);
+  const [disclaimerShown, setDisclaimerShown] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setCanShare(typeof navigator !== "undefined" && !!navigator.share); }, []);
@@ -67,7 +68,7 @@ export default function RaumplanerApp() {
       clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Fehler bei der Generierung"); setGenerating(false); return; }
-      setResultImage(data.resultImage); setGenerating(false);
+      setResultImage(data.resultImage); setGenerating(false); setDisclaimerShown(true);
     } catch { setError("Netzwerkfehler. Bitte erneut versuchen."); setGenerating(false); }
   }
 
@@ -136,7 +137,21 @@ export default function RaumplanerApp() {
                 ) : resultImage ? (
                   /* Before/After slider + actions below */
                   <div>
-                    <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
+                    <div style={{ position: "relative", borderRadius: 20, overflow: "hidden" }}>
+                      <div style={{ filter: disclaimerShown ? "blur(8px)" : "none", transition: "filter 0.4s" }}>
+                        <BeforeAfterSlider beforeImage={uploadedImage} afterImage={resultImage} />
+                      </div>
+                      {disclaimerShown && (
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, borderRadius: 20 }}>
+                          <div style={{ background: "#222", borderRadius: 20, padding: "32px 28px", maxWidth: 400, textAlign: "center", margin: 16 }}>
+                            <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.6 }}>
+                              Hinweis: Dies ist eine KI-generierte Visualisierung. Farben, Maserungen und Oberflächenstrukturen können in der Realität abweichen — insbesondere bei Holz, da es sich um ein Naturprodukt handelt.
+                            </p>
+                            <button onClick={() => setDisclaimerShown(false)} style={{ marginTop: 16, padding: "10px 32px", borderRadius: 12, border: "none", background: "#C8A415", color: "#1A1A1A", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Verstanden</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     {selectedFloor && (
                       <div style={{ marginTop: 16, padding: 16, background: "#1A1A1A", border: "1px solid #333", borderRadius: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -158,9 +173,6 @@ export default function RaumplanerApp() {
                         {canShare ? "Teilen" : "Bild speichern"}
                       </button>
                     </div>
-                    <p style={{ fontSize: 12, color: "#888", textAlign: "center", padding: "12px 16px", marginTop: 8 }}>
-                      Hinweis: Dies ist eine KI-generierte Visualisierung. Farben, Maserungen und Oberflächenstrukturen können in der Realität abweichen — insbesondere bei Holz, da es sich um ein Naturprodukt handelt. Besuchen Sie unsere Ausstellung für einen authentischen Eindruck.
-                    </p>
                   </div>
                 ) : (
                   /* Original uploaded photo */
