@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await (openai.images.edit as any)({
-      model: "gpt-image-1-mini",
+      model: "gpt-image-1.5",
       image: images,
       prompt,
       size,
