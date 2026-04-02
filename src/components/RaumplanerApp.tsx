@@ -42,6 +42,7 @@ export default function RaumplanerApp() {
   const [canShare, setCanShare] = useState(false);
   const [disclaimerShown, setDisclaimerShown] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const reuploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setCanShare(typeof navigator !== "undefined" && !!navigator.share); }, []);
 
@@ -53,7 +54,7 @@ export default function RaumplanerApp() {
 
   function handleImageUploaded(b: string) { setUploadedImage(b); setCurrentStep(2); }
   function handleReset() { setUploadedImage(null); setSelectedFloor(null); setResultImage(null); setError(null); setGenerating(false); setCurrentStep(1); }
-  function handleNewPhoto() { setUploadedImage(null); setResultImage(null); setError(null); setGenerating(false); setDisclaimerShown(false); setCurrentStep(1); }
+  function handleNewPhoto() { reuploadRef.current?.click(); }
 
   async function generatePreview(floor: FloorProduct) {
     if (!uploadedImage) return;
@@ -213,6 +214,39 @@ export default function RaumplanerApp() {
           </div>
         </div>
       )}
+
+      {/* Hidden file input for re-upload */}
+      <input
+        ref={reuploadRef}
+        type="file"
+        accept="image/jpeg,image/png,image/heic,.heic"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          e.target.value = "";
+          try {
+            const bitmap = await createImageBitmap(file);
+            const MAX = 1024;
+            let cw = bitmap.width, ch = bitmap.height;
+            if (cw > MAX || ch > MAX) {
+              if (cw > ch) { ch = Math.round(MAX * ch / cw); cw = MAX; }
+              else { cw = Math.round(MAX * cw / ch); ch = MAX; }
+            }
+            const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+            const ctx = c.getContext("2d")!;
+            ctx.drawImage(bitmap, 0, 0, cw, ch);
+            bitmap.close();
+            const b64 = c.toDataURL("image/jpeg", 0.5);
+            setUploadedImage(b64);
+            setResultImage(null);
+            setError(null);
+            setGenerating(false);
+            setDisclaimerShown(false);
+            setCurrentStep(2);
+          } catch { /* ignore */ }
+        }}
+      />
     </div>
   );
 }
