@@ -158,6 +158,9 @@ export default function RaumplanerApp() {
                         {canShare ? "Teilen" : "Bild speichern"}
                       </button>
                     </div>
+                    <p style={{ fontSize: 12, color: "#888", textAlign: "center", padding: "12px 16px", marginTop: 8 }}>
+                      Hinweis: Dies ist eine KI-generierte Visualisierung. Farben, Maserungen und Oberflächenstrukturen können in der Realität abweichen — insbesondere bei Holz, da es sich um ein Naturprodukt handelt. Besuchen Sie unsere Ausstellung für einen authentischen Eindruck.
+                    </p>
                   </div>
                 ) : (
                   /* Original uploaded photo */
