@@ -67,22 +67,55 @@ export async function POST(request: NextRequest) {
 
     const images: any[] = [roomFile];
 
-    const parts = [
-      product.name,
-      product.format,
-      product.dimensions,
-      product.verlegemuster ? `Verlegemuster: ${product.verlegemuster}` : null,
-      product.oberflaeche ? `Oberfläche: ${product.oberflaeche}` : null,
-      product.category?.toLowerCase() === "vinyl" || product.category?.toLowerCase() === "laminat" || product.category?.toLowerCase() === "kork"
-        ? "fugenloses Design, KEINE sichtbaren Fugen oder Fliesenkanten"
-        : null,
-    ].filter(Boolean).join(", ");
+    // Build smart description based on product properties
+    const dims = product.dimensions || "";
+    const format = product.format || "";
+    const category = (product.category || "").toLowerCase();
+    const oberflaeche = product.oberflaeche || "";
+    const verlegemuster = product.verlegemuster || "";
 
-    const directionText = direction === "quer"
-      ? " WICHTIG: Die Dielen/Planken müssen QUER zur Längsrichtung des Raumes verlegt werden, also von links nach rechts."
-      : direction === "diagonal"
-      ? " WICHTIG: Die Dielen/Planken müssen DIAGONAL im 45-Grad-Winkel verlegt werden."
-      : "";
+    let floorDescription = product.name;
+
+    if (dims) {
+      const match = dims.match(/(\d+)\s*[x×]\s*(\d+)/i);
+      if (match) {
+        const w = parseInt(match[1]);
+        const h = parseInt(match[2]);
+        const longer = Math.max(w, h);
+        const shorter = Math.min(w, h);
+
+        if (longer > 1000) {
+          floorDescription += `, lange Dielen/Planken (${dims})`;
+        } else if (longer > 500) {
+          floorDescription += `, mittelgroße rechteckige Platten (${dims})`;
+        } else {
+          floorDescription += `, Format ${dims}`;
+        }
+
+        if (longer / shorter > 3) {
+          floorDescription += ", deutlich längliches Format";
+        } else if (longer / shorter > 1.5) {
+          floorDescription += ", rechteckiges Format";
+        } else {
+          floorDescription += ", annähernd quadratisches Format";
+        }
+      } else {
+        floorDescription += `, Maße: ${dims}`;
+      }
+    }
+
+    if (format) floorDescription += `, ${format}`;
+    if (oberflaeche) floorDescription += `, Oberfläche: ${oberflaeche}`;
+    if (verlegemuster) floorDescription += `, Verlegemuster: ${verlegemuster}`;
+
+    let jointHint = "";
+    if (category === "vinyl" || category === "laminat" || category === "kork") {
+      jointHint = " WICHTIG: Dieser Boden hat KEINE sichtbaren Fugen, Fliesenkanten oder Zementfugen. Die Planken liegen fugenlos aneinander.";
+    } else if (category === "parkett") {
+      jointHint = " Die Dielen liegen eng aneinander ohne breite Fugen.";
+    } else if (category === "fliese") {
+      jointHint = " Zwischen den Fliesen sind schmale Fugen sichtbar.";
+    }
 
     let prompt: string;
 
@@ -94,10 +127,12 @@ export async function POST(request: NextRequest) {
         .toBuffer();
       const texFile = await toFile(compressedTex, "texture.jpg", { type: "image/jpeg" });
       images.push(texFile);
-      prompt = `Lege in diesen Raum diesen Boden (${parts}). Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild.${directionText} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
+      prompt = `Lege in diesen Raum diesen Boden (${floorDescription}).${jointHint} Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild. Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     } else {
-      prompt = `Lege in diesen Raum einen ${parts} Boden.${directionText} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
+      prompt = `Lege in diesen Raum einen ${floorDescription} Boden.${jointHint} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     }
+
+    console.log("[generate-preview] Prompt:", prompt);
 
     const result = await (openai.images.edit as any)({
       model: "gpt-image-1.5",
