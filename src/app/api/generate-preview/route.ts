@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     let jointHint = "";
     if (category === "vinyl" || category === "laminat" || category === "kork") {
-      jointHint = " WICHTIG: Dieser Boden hat KEINE sichtbaren Fugen, Fliesenkanten oder Zementfugen. Die Planken liegen fugenlos aneinander.";
+      jointHint = " STRENG VERBOTEN: KEINE Fugen, KEINE Fliesenkanten, KEINE Zementlinien. Dies ist KEIN Fliesenboden. Es ist ein durchgängiger Vinyl-/Laminatboden aus Planken die fugenlos aneinander liegen. Der Boden muss wie eine durchgehende Fläche aussehen.";
     } else if (category === "parkett") {
       jointHint = " Die Dielen liegen eng aneinander ohne breite Fugen.";
     } else if (category === "fliese") {
