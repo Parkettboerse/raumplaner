@@ -53,6 +53,7 @@ export default function RaumplanerApp() {
 
   function handleImageUploaded(b: string) { setUploadedImage(b); setCurrentStep(2); }
   function handleReset() { setUploadedImage(null); setSelectedFloor(null); setResultImage(null); setError(null); setGenerating(false); setCurrentStep(1); }
+  function handleNewPhoto() { setUploadedImage(null); setResultImage(null); setError(null); setGenerating(false); setDisclaimerShown(false); setCurrentStep(1); }
 
   async function generatePreview(floor: FloorProduct) {
     if (!uploadedImage) return;
@@ -166,8 +167,9 @@ export default function RaumplanerApp() {
                       </div>
                     )}
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 12 }}>
                       <button onClick={() => setCurrentStep(4)} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#C8A415", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Im Shop ansehen</button>
+                      <button onClick={handleNewPhoto} style={{ padding: "12px 16px", borderRadius: 12, background: "transparent", color: "#888", fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1.5px solid #444" }}>Anderes Foto</button>
                       <button onClick={handleDownload} style={{ padding: "12px 16px", borderRadius: 12, border: "none", background: "#2A2A2A", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         {canShare && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>}
                         {canShare ? "Teilen" : "Bild speichern"}
