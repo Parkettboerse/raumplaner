@@ -59,7 +59,11 @@ export async function POST(request: NextRequest) {
     const size = await detectSize(roomImage);
 
     const roomBuffer = b64ToBuffer(roomImage);
-    const roomFile = await toFile(roomBuffer, "room.png", { type: "image/png" });
+    const compressedRoom = await sharp(roomBuffer)
+      .resize(768, 768, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+    const roomFile = await toFile(compressedRoom, "room.jpg", { type: "image/jpeg" });
 
     const images: any[] = [roomFile];
 
@@ -84,7 +88,11 @@ export async function POST(request: NextRequest) {
 
     if (textureImage) {
       const texBuffer = b64ToBuffer(textureImage);
-      const texFile = await toFile(texBuffer, "texture.png", { type: "image/png" });
+      const compressedTex = await sharp(texBuffer)
+        .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 60 })
+        .toBuffer();
+      const texFile = await toFile(compressedTex, "texture.jpg", { type: "image/jpeg" });
       images.push(texFile);
       prompt = `Lege in diesen Raum diesen Boden (${parts}). Verwende EXAKT die Textur, Farbe und Maserung aus dem zweiten Bild.${directionText} Verändere NUR den Boden, alles andere muss exakt gleich bleiben.`;
     } else {
