@@ -4,7 +4,22 @@ import { FloorProduct } from "@/types";
 
 interface Props { product: FloorProduct; onBack: () => void; }
 
+function InfoBadge({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      background: "#333", borderRadius: 10, padding: "6px 12px",
+    }}>
+      <span style={{ fontSize: 11, color: "#888" }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{value}</span>
+    </div>
+  );
+}
+
 export default function ProductDetail({ product, onBack }: Props) {
+  const hasExtras = product.masse || product.dimensions || product.oberflaeche || product.format || product.verlegemuster || product.sku;
+
   return (
     <div>
       <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 500, color: "#888", background: "none", border: "none", cursor: "pointer", marginBottom: 20, fontFamily: "inherit" }}>
@@ -18,9 +33,22 @@ export default function ProductDetail({ product, onBack }: Props) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>{product.name}</h3>
           <p style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{product.detail}</p>
+          {product.sku && <p style={{ fontSize: 11, color: "#666", marginTop: 4 }}>Art.-Nr. {product.sku}</p>}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#C8A415" }}>{product.price}</div>
       </div>
+
+      {hasExtras && (
+        <div style={{
+          marginTop: 12, padding: "14px 18px", background: "#2A2A2A", border: "1px solid #333", borderRadius: 16,
+          display: "flex", flexWrap: "wrap", gap: 8,
+        }}>
+          <InfoBadge label="Maße" value={product.masse || product.dimensions} />
+          <InfoBadge label="Oberfläche" value={product.oberflaeche} />
+          <InfoBadge label="Format" value={product.format} />
+          <InfoBadge label="Verlegemuster" value={product.verlegemuster} />
+        </div>
+      )}
 
       <a href={product.shop_url} target="_blank" rel="noopener noreferrer" style={{
         display: "block", width: "100%", padding: 15, borderRadius: 14, border: "none",
