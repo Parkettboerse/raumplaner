@@ -21,14 +21,16 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
 
   return (
     <div style={{ background: "#222222", border: "1px solid #333", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "80vh" }}>
-      <div style={{ padding: "20px 20px 0" }}>
+      <div style={{ padding: "20px 20px 0", flexShrink: 0 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Bodenbeläge</h2>
         <p style={{ fontSize: 13, color: "#888", marginTop: 3 }}>Aus unserem Sortiment</p>
       </div>
 
-      <CategoryTabs activeCategory={cat} onCategoryChange={setCat} />
+      <div style={{ flexShrink: 0 }}>
+        <CategoryTabs activeCategory={cat} onCategoryChange={setCat} />
+      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", flex: 1, minHeight: 0, overflowY: "auto", alignContent: "start" }}>
         {loading ? (
           <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: "40px 0" }}>
             <div style={{ width: 32, height: 32, border: "3px solid #444", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
@@ -42,7 +44,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
         )}
       </div>
 
-      <div style={{ padding: "16px 20px", borderTop: "1px solid #333", marginTop: "auto" }}>
+      <div style={{ padding: "16px 20px", borderTop: "1px solid #333", flexShrink: 0 }}>
         {selectedFloor && (
           <div style={{ padding: "10px 14px", background: "rgba(200,164,21,0.1)", borderRadius: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
             {selectedFloor.texture_url && (
