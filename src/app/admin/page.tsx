@@ -13,16 +13,15 @@ const CATEGORIES: { value: Category; label: string }[] = [
 ];
 
 const emptyForm = {
-  sku: "",
   name: "",
   category: "parkett" as Category,
   detail: "",
   price: "",
   shop_url: "",
-  masse: "",
-  oberflaeche: "",
   format: "",
+  dimensions: "",
   verlegemuster: "",
+  oberflaeche: "",
 };
 
 function compressImageFile(file: File, maxWidth = 512, quality = 0.7): Promise<Blob> {
@@ -278,11 +277,10 @@ export default function AdminPage() {
           detail: form.detail,
           price: form.price,
           shop_url: form.shop_url,
-          sku: form.sku,
-          masse: form.masse,
-          oberflaeche: form.oberflaeche,
           format: form.format,
+          dimensions: form.dimensions,
           verlegemuster: form.verlegemuster,
+          oberflaeche: form.oberflaeche,
         };
         if (newTextureUrl) body.texture_url = newTextureUrl;
         const res = await fetchWithTimeout(`/api/products/${editingId}`, {
@@ -301,11 +299,10 @@ export default function AdminPage() {
           price: form.price,
           texture_url: newTextureUrl,
           shop_url: form.shop_url,
-          sku: form.sku || undefined,
-          masse: form.masse || undefined,
-          oberflaeche: form.oberflaeche || undefined,
           format: form.format || undefined,
+          dimensions: form.dimensions || undefined,
           verlegemuster: form.verlegemuster || undefined,
+          oberflaeche: form.oberflaeche || undefined,
         };
         const res = await fetchWithTimeout("/api/products", {
           method: "POST",
@@ -348,16 +345,15 @@ export default function AdminPage() {
   function handleEdit(product: FloorProduct) {
     setEditingId(product.id);
     setForm({
-      sku: product.sku || "",
       name: product.name,
       category: product.category,
       detail: product.detail,
       price: product.price,
       shop_url: product.shop_url,
-      masse: product.masse || product.dimensions || "",
-      oberflaeche: product.oberflaeche || "",
       format: product.format || "",
+      dimensions: product.dimensions || "",
       verlegemuster: product.verlegemuster || "",
+      oberflaeche: product.oberflaeche || "",
     });
     setTextureFile(null);
     setCurrentTextureUrl(product.texture_url || "");
@@ -386,28 +382,18 @@ export default function AdminPage() {
       const rows = parseCSVClient(text);
       if (rows.length < 2) return;
       const header = rows[0].map((h) => h.toLowerCase().trim());
-      const skuIdx = header.findIndex((h) => h === "sku" || h === "artikelnummer" || h === "art.-nr." || h === "artnr");
       const nameIdx = header.findIndex((h) => h === "name");
       const catIdx = header.findIndex((h) => h === "kategorie" || h === "category");
       const detailIdx = header.findIndex((h) => h === "detail");
       const priceIdx = header.findIndex((h) => h === "preis" || h === "price");
       const shopIdx = header.findIndex((h) => h.includes("shop") || h.includes("url"));
-      const masseIdx = header.findIndex((h) => h === "maße" || h === "masse" || h === "maβe" || h === "dimensions");
-      const oberfIdx = header.findIndex((h) => h === "oberflaeche" || h === "oberfläche" || h.includes("oberfla"));
-      const formatIdx = header.findIndex((h) => h === "format");
-      const verlIdx = header.findIndex((h) => h === "verlegemuster" || h.includes("verlege"));
 
       const preview = rows.slice(1).map((row) => ({
-        sku: skuIdx !== -1 ? row[skuIdx] || "" : "",
         name: nameIdx !== -1 ? row[nameIdx] || "" : "",
         category: catIdx !== -1 ? row[catIdx] || "" : "",
         detail: detailIdx !== -1 ? row[detailIdx] || "" : "",
         price: priceIdx !== -1 ? row[priceIdx] || "" : "",
         shop_url: shopIdx !== -1 ? row[shopIdx] || "" : "",
-        masse: masseIdx !== -1 ? row[masseIdx] || "" : "",
-        oberflaeche: oberfIdx !== -1 ? row[oberfIdx] || "" : "",
-        format: formatIdx !== -1 ? row[formatIdx] || "" : "",
-        verlegemuster: verlIdx !== -1 ? row[verlIdx] || "" : "",
       }));
       setCsvPreview(preview.filter((r) => r.name));
     };
@@ -504,7 +490,7 @@ export default function AdminPage() {
           <p className="mb-3 text-sm text-gray-500">
             Erwartete Spalten (Semikolon oder Komma getrennt):{" "}
             <span className="font-mono text-gray-700">
-              SKU; Name; Kategorie; Detail; Preis; Shop-URL; Maße; Oberfläche; Format; Verlegemuster
+              Name; Kategorie; Detail; Preis; Shop-URL
             </span>
           </p>
           <div className="flex items-center gap-4">
@@ -525,31 +511,21 @@ export default function AdminPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                      <th className="px-3 py-2">SKU</th>
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Kategorie</th>
                       <th className="px-3 py-2">Detail</th>
                       <th className="px-3 py-2">Preis</th>
                       <th className="px-3 py-2">Shop-URL</th>
-                      <th className="px-3 py-2">Maße</th>
-                      <th className="px-3 py-2">Oberfläche</th>
-                      <th className="px-3 py-2">Format</th>
-                      <th className="px-3 py-2">Verlegemuster</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {csvPreview.map((row, i) => (
                       <tr key={i}>
-                        <td className="px-3 py-2 text-xs text-gray-400">{row.sku}</td>
                         <td className="px-3 py-2">{row.name}</td>
                         <td className="px-3 py-2">{row.category}</td>
                         <td className="px-3 py-2">{row.detail}</td>
                         <td className="px-3 py-2">{row.price}</td>
-                        <td className="px-3 py-2 max-w-[150px] truncate">{row.shop_url}</td>
-                        <td className="px-3 py-2 text-xs">{row.masse}</td>
-                        <td className="px-3 py-2 text-xs">{row.oberflaeche}</td>
-                        <td className="px-3 py-2 text-xs">{row.format}</td>
-                        <td className="px-3 py-2 text-xs">{row.verlegemuster}</td>
+                        <td className="px-3 py-2 max-w-[200px] truncate">{row.shop_url}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -722,18 +698,6 @@ export default function AdminPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-600">
-                  SKU / Art.-Nr.
-                </label>
-                <input
-                  type="text"
-                  value={form.sku}
-                  onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  placeholder="z.B. 15891"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-600">
                   Name
                 </label>
                 <input
@@ -813,7 +777,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-600">Maße</label>
-                <input type="text" value={form.masse} onChange={(e) => setForm({ ...form, masse: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none" placeholder="z.B. 1220x225x8mm" />
+                <input type="text" value={form.dimensions} onChange={(e) => setForm({ ...form, dimensions: e.target.value })} className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none" placeholder="z.B. 1220x185mm" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-600">Verlegemuster</label>

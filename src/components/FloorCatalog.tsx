@@ -17,14 +17,7 @@ interface Props {
 
 export default function FloorCatalog({ products, loading, selectedFloor, onFloorSelect, onApply }: Props) {
   const [cat, setCat] = useState<Category>("alle");
-  const filtered = (cat === "alle" ? products : products.filter((p) => p.category === cat))
-    .slice()
-    .sort((a, b) => {
-      const aHas = a.texture_url ? 0 : 1;
-      const bHas = b.texture_url ? 0 : 1;
-      if (aHas !== bHas) return aHas - bHas;
-      return a.name.localeCompare(b.name, "de");
-    });
+  const filtered = cat === "alle" ? products : products.filter((p) => p.category === cat);
 
   return (
     <div style={{ background: "#222222", border: "1px solid #333", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden" }}>

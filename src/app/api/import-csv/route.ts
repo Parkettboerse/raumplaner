@@ -31,16 +31,15 @@ export async function POST(request: NextRequest) {
     if (rows.length < 2) return NextResponse.json({ error: "CSV leer" }, { status: 400 });
 
     const header = rows[0].map((h) => h.toLowerCase().trim());
-    const skuIdx = header.findIndex((h) => h === "sku" || h === "artikelnummer" || h === "art.-nr." || h === "artnr");
     const nameIdx = header.findIndex((h) => h === "name");
     const catIdx = header.findIndex((h) => h === "kategorie" || h === "category");
     const detailIdx = header.findIndex((h) => h === "detail");
     const priceIdx = header.findIndex((h) => h === "preis" || h === "price");
     const shopIdx = header.findIndex((h) => h.includes("shop") || h.includes("url"));
-    const masseIdx = header.findIndex((h) => h === "maße" || h === "masse" || h === "maβe" || h === "dimensions");
-    const oberfIdx = header.findIndex((h) => h === "oberflaeche" || h === "oberfläche" || h.includes("oberfla"));
     const formatIdx = header.findIndex((h) => h === "format");
+    const dimIdx = header.findIndex((h) => h === "dimensions" || h === "maße" || h === "masse" || h === "maβe");
     const verlIdx = header.findIndex((h) => h === "verlegemuster" || h.includes("verlege"));
+    const oberfIdx = header.findIndex((h) => h === "oberflaeche" || h === "oberfläche" || h.includes("oberfla"));
 
     if (nameIdx === -1 || catIdx === -1)
       return NextResponse.json({ error: 'Spalten "Name" und "Kategorie" fehlen' }, { status: 400 });
@@ -57,7 +56,6 @@ export async function POST(request: NextRequest) {
       if (!name) { errors.push(`Zeile ${i+1}: Name fehlt`); continue; }
       if (!validCats.includes(category)) { errors.push(`Zeile ${i+1}: Ungültige Kategorie`); continue; }
 
-      const sku = skuIdx !== -1 ? (row[skuIdx] || "").trim() : "";
       const id = `${category}-${slugify(name)}`;
       const product: any = {
         id, name, category,
@@ -66,15 +64,12 @@ export async function POST(request: NextRequest) {
         texture_url: "",
         shop_url: shopIdx !== -1 ? row[shopIdx] || "" : "",
       };
-      if (sku) product.sku = sku;
-      if (masseIdx !== -1 && row[masseIdx]) product.masse = row[masseIdx].trim();
-      if (oberfIdx !== -1 && row[oberfIdx]) product.oberflaeche = row[oberfIdx].trim();
       if (formatIdx !== -1 && row[formatIdx]) product.format = row[formatIdx].trim();
+      if (dimIdx !== -1 && row[dimIdx]) product.dimensions = row[dimIdx].trim();
       if (verlIdx !== -1 && row[verlIdx]) product.verlegemuster = row[verlIdx].trim();
+      if (oberfIdx !== -1 && row[oberfIdx]) product.oberflaeche = row[oberfIdx].trim();
 
-      // Match by SKU first, then by ID
-      let existing = sku ? products.findIndex((p: any) => p.sku === sku) : -1;
-      if (existing === -1) existing = products.findIndex((p: any) => p.id === id);
+      const existing = products.findIndex((p: any) => p.id === id);
       if (existing !== -1) products[existing] = { ...products[existing], ...product };
       else products.push(product);
       imported.push(product);
