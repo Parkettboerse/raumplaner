@@ -5,7 +5,7 @@ import { FloorProduct } from "@/types";
 interface Props { product: FloorProduct; selected: boolean; onSelect: (p: FloorProduct) => void; }
 
 const CATEGORY_ICONS: Record<string, string> = {
-  parkett: "\u{1FAB5}",
+  parkett: "\uD83E\uDEB5",
   vinyl: "\u25A0",
   laminat: "\u25A6",
   kork: "\u25CB",
@@ -46,7 +46,7 @@ export default function FloorCard({ product, selected, onSelect }: Props) {
       </div>
       <div style={{ padding: "10px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>{product.name}</div>
-        <div style={{ fontSize: 11, color: "#888", marginTop: 2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{product.detail}</div>
+        <div style={{ fontSize: 11, color: "#888", marginTop: 2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.detail}</div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 6, color: "#C8A415" }}>{product.price}</div>
       </div>
     </div>
