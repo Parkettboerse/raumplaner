@@ -28,7 +28,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
 
       <CategoryTabs activeCategory={cat} onCategoryChange={setCat} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", maxHeight: 400, overflowY: "auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", maxHeight: 520, overflowY: "auto" }}>
         {loading ? (
           <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: "40px 0" }}>
             <div style={{ width: 32, height: 32, border: "3px solid #444", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
