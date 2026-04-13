@@ -20,7 +20,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
   const filtered = cat === "alle" ? products : products.filter((p) => p.category === cat);
 
   return (
-    <div style={{ background: "#222222", border: "1px solid #333", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ background: "#222222", border: "1px solid #333", borderRadius: 20, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "80vh" }}>
       <div style={{ padding: "20px 20px 0" }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Bodenbeläge</h2>
         <p style={{ fontSize: 13, color: "#888", marginTop: 3 }}>Aus unserem Sortiment</p>
@@ -28,7 +28,7 @@ export default function FloorCatalog({ products, loading, selectedFloor, onFloor
 
       <CategoryTabs activeCategory={cat} onCategoryChange={setCat} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", maxHeight: 520, overflowY: "auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "14px 20px", flex: 1, minHeight: 0, overflowY: "auto" }}>
         {loading ? (
           <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", padding: "40px 0" }}>
             <div style={{ width: 32, height: 32, border: "3px solid #444", borderTopColor: "#C8A415", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
